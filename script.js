@@ -543,7 +543,10 @@ async function gerarPix() {
     if (qr) {
       qr.innerHTML = '';
       if (r.qr_code_base64) {
-        qr.innerHTML = `<img src="data:image/png;base64,${r.qr_code_base64}" style="max-width:220px;border-radius:14px;border:6px solid white;">`;
+        qr.innerHTML = `<img src="data:image/png;base64,${r.qr_code_base64}" alt="QR Code PIX" style="width:220px;height:220px;border-radius:14px;border:6px solid white;">`;
+      } else if (r.qr_code_image) {
+        // imagem gerada (QR server) — com fallback se falhar
+        qr.innerHTML = `<img src="${r.qr_code_image}" alt="QR Code PIX" style="width:220px;height:220px;border-radius:14px;border:6px solid white;background:#fff;" onerror="this.parentElement.innerHTML='<p style=&quot;color:var(--muted)&quot;Código PIX: '+this.alt+'</p>'">`;
       } else if (typeof QRCode !== 'undefined') {
         new QRCode(qr, { text: r.qr_code_copia_cola, width: 220, height: 220, colorDark: '#000', colorLight: '#fff' });
       } else {
@@ -576,7 +579,7 @@ function iniciarVerificacao(identifier, valor, usuario) {
   if (pixInterval) clearInterval(pixInterval);
   pixCancelado = false;
   let tentativas = 0;
-  const max = 360; // 30 min
+  const max = 600; // 30 min (3s)
   pixInterval = setInterval(async () => {
     if (pixCancelado) { clearInterval(pixInterval); pixInterval = null; return; }
     if (++tentativas > max) {
@@ -585,31 +588,24 @@ function iniciarVerificacao(identifier, valor, usuario) {
       return;
     }
     try {
-      const s = await SigiloPay.consultarPagamento(identifier);
+      if (!db) return;
+      // O Webhook é a fonte autoritativa e quem credita o saldo.
+      // Aqui apenas acompanhamos o status da transação no Firebase
+      // (o polling da SigiloPay é bloqueado com 429 — não usar mais).
+      const idx = await db.child('identifier_index/' + identifier).once('value');
+      const tk = idx.val();
+      if (!tk) return;
+      const st = await db.child('transacoes/' + tk + '/status').once('value');
       if (pixCancelado) return;
-      if (s.sucesso && s.pago) {
+      if (String(st.val() || '').toLowerCase() === 'aprovada') {
         clearInterval(pixInterval); pixInterval = null;
         const snap = await db.child('usuarios/' + usuario.id).once('value');
-        if (snap.exists()) {
-          const key = usuario.id;
-          const atual = snap.val();
-          await db.child('usuarios/' + key + '/saldo').set((Number(atual.saldo) || 0) + valor);
-          await db.child('usuarios/' + key + '/total_depositado').set((Number(atual.total_depositado) || 0) + valor);
-          const idxTx = await db.child('identifier_index/' + identifier).once('value');
-          const tk = idxTx.val();
-          if (tk) {
-            await db.child('transacoes/' + tk + '/status').set('aprovada');
-            await db.child('transacoes/' + tk + '/aprovado_em').set(new Date().toISOString());
-          }
-          db.child('plataforma/lucro_total').transaction(v => (v || 0) + valor);
-          usuario.saldo = (Number(atual.saldo) || 0) + valor;
-          salvarUsuarioLocal(usuario);
-        }
+        if (snap.exists()) salvarUsuarioLocal(snap.val());
         setMensagem('pixStatus', 'Pagamento confirmado! Saldo atualizado.', 'success');
-        setTimeout(() => location.reload(), 2500);
+        setTimeout(() => location.reload(), 2000);
       }
     } catch (e) { /* silencioso: tenta de novo */ }
-  }, 5000);
+  }, 3000);
 }
 
 function copiarPix() {

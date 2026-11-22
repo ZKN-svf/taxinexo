@@ -6,7 +6,9 @@ const SIGILOPAY_CONFIG = {
   baseURL: 'https://investmax-proxy.gabrielrobin63.workers.dev/api'
 };
 
-const WEBHOOK_URL = SIGILOPAY_CONFIG.baseURL + '/webhook/sigilopay';
+// Webhook exclusivo do Taxinexo — credita o saldo no Firebase.
+// O proxy do InvestMax apenas loga o webhook (não credita) e bloqueia polling (429).
+const WEBHOOK_URL = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/';
 
 function gerarIdentifier() {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -39,7 +41,11 @@ async function criarCobrancaPIX(valor, descricao, emailPagador, idUsuario) {
       status: data.status,
       order_id: data.order && data.order.id,
       qr_code_copia_cola: data.pix && data.pix.code,
-      qr_code_image: data.pix && data.pix.image,
+      // A API as vezes devolve base64 vazio; geramos a imagem via QR server
+      qr_code_image: (data.pix && data.pix.image) ||
+        (data.pix && data.pix.code
+          ? 'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data=' + encodeURIComponent(data.pix.code)
+          : null),
       qr_code_base64: data.pix && data.pix.base64,
       expires_at: data.pix && data.pix.expiresAt,
       valor
