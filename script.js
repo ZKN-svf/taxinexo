@@ -323,6 +323,7 @@ async function iniciarDashboard() {
 
   carregarPlanos();
   await carregarInvestimentos();
+  atualizarTimers();
   await carregarExtrato();
 }
 
@@ -390,6 +391,31 @@ async function escolherPlano(id) {
   const dlg = el('investirDialog'); if (dlg) dlg.showModal();
 }
 
+// Timer: próximo rendimento no horário exato da compra (24h)
+function proxPagamentoCliente(inv) {
+  let t = Date.parse(inv.proximo_pagamento || '');
+  if (!isFinite(t)) {
+    t = Date.parse(inv.data_inicio || '');
+    if (!isFinite(t)) t = Date.now();
+    t += 24 * 60 * 60 * 1000;
+  }
+  return new Date(t).toISOString();
+}
+function atualizarTimers() {
+  document.querySelectorAll('[data-proximo]').forEach(el => {
+    const alvo = Date.parse(el.dataset.proximo || '');
+    if (!isFinite(alvo)) { el.querySelector('strong').textContent = ' breve'; return; }
+    let diff = alvo - Date.now();
+    if (diff <= 0) { el.querySelector('strong').textContent = ' processando...'; return; }
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.querySelector('strong').textContent =
+      String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  });
+}
+setInterval(atualizarTimers, 1000);
+
 async function carregarInvestimentos() {
   const tbody = el('investimentosBody'); if (!tbody || !db) return;
   const u = usuarioLocal();
@@ -420,6 +446,10 @@ async function carregarInvestimentos() {
           <div class="invest-progress-top"><span>Progresso</span><span>${dias} de ${total} dias</span></div>
           <div class="invest-bar"><i style="width:${pct}%"></i></div>
         </div>
+        ${ativo ? `<div class="invest-timer" data-proximo="${proxPagamentoCliente(inv)}">
+          <span class="invest-timer-ico" aria-hidden="true">⏱</span>
+          <span class="invest-timer-txt">Próximo rendimento em <strong>--:--:--</strong></span>
+        </div>` : ''}
       </article>`;
     }).join('');
   } catch (e) { console.error('[Investimentos]', e); }

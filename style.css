@@ -411,3 +411,13 @@ button.plano-esgotado,
 
 /* Botão do grupo no canto INFERIOR ESQUERDO */
 .grp-whats{ left:16px !important; right:auto !important; }
+
+/* Timer do próximo rendimento */
+.invest-timer{
+  display:flex;align-items:center;gap:9px;margin-top:11px;padding:9px 11px;
+  border:1px solid rgba(246,217,133,.35);border-radius:10px;
+  background:rgba(246,217,133,.07);color:var(--muted);font-size:11px;min-width:0;
+}
+.invest-timer-ico{flex:none;font-size:15px;color:var(--gold)}
+.invest-timer-txt{min-width:0;word-break:break-word}
+.invest-timer strong{color:var(--gold);font-size:14px;font-variant-numeric:tabular-nums;letter-spacing:.5px}
