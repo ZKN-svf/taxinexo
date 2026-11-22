@@ -323,3 +323,79 @@ select option{background:#02142e;color:#fff}
   .invest-values>div{display:flex;justify-content:space-between;align-items:center;text-align:left}
   .invest-values strong{margin-top:0}
 }
+
+/* ============================================================
+   ADMIN — visual novo
+   ============================================================ */
+.admin-wrap{padding-top:26px;padding-bottom:40px;display:grid;gap:22px}
+.admin-login{display:grid;place-items:center;min-height:60vh}
+.admin-login-card{max-width:420px;width:100%;text-align:center;padding:30px}
+.admin-shield{width:58px;height:58px;margin:0 auto 14px;border-radius:16px;display:grid;place-items:center;font-size:28px;color:#06210f;background:linear-gradient(135deg,var(--cyan),#16c79a);box-shadow:0 0 24px rgba(0,217,245,.3)}
+.admin-login-card h1{font-size:24px;margin-bottom:6px}
+.admin-login-card>p{color:var(--muted);font-size:13px;margin-bottom:20px}
+.admin-login-card .field{text-align:left}
+.admin-top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.admin-top h1{font-size:clamp(20px,4vw,28px)}
+.admin-top p{color:var(--muted);font-size:12px;margin-top:3px}
+.admin-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr));gap:12px}
+.admin-stat{position:relative;background:linear-gradient(145deg,rgba(5,42,100,.85),rgba(2,18,44,.95));border:1px solid var(--line);border-radius:14px;padding:16px 14px;min-width:0;overflow:hidden}
+.admin-stat::after{content:'';position:absolute;right:-30px;top:-30px;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(0,217,245,.16),transparent 70%)}
+.admin-stat-ico{font-size:20px;display:block;margin-bottom:8px}
+.admin-stat small{display:block;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+.admin-stat strong{display:block;margin-top:5px;font-size:clamp(15px,3vw,21px);word-break:break-word;color:#fff}
+.admin-section{display:grid;gap:12px}
+.admin-sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.admin-sec-head h2{font-size:18px}
+.admin-sec-head small{color:var(--muted);font-size:11px}
+.admin-actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
+.admin-action{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap;background:rgba(2,20,50,.7);border:1px solid var(--line);border-radius:14px;padding:15px;min-width:0}
+.admin-action-ico{flex:none;width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:19px;background:rgba(0,217,245,.12);color:var(--cyan)}
+.admin-action-ico.green{background:rgba(78,230,176,.12);color:var(--green)}
+.admin-action-ico.red{background:rgba(255,139,139,.12);color:var(--red)}
+.admin-action>div{flex:1 1 180px;min-width:0}
+.admin-action h3{font-size:14px;margin-bottom:4px}
+.admin-action p{color:var(--muted);font-size:12px;line-height:1.45}
+.admin-action>.btn{flex:none}
+.admin-action-form{display:flex;gap:8px;flex-wrap:wrap;width:100%}
+.admin-action-form input{flex:1 1 180px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(1,12,32,.75);color:#fff;outline:0}
+.admin-codes{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:12px}
+.admin-code-card{background:linear-gradient(150deg,rgba(5,40,96,.7),rgba(2,18,44,.92));border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.admin-code-head{display:flex;gap:11px;align-items:center;margin-bottom:12px}
+.admin-code-ico{flex:none;width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:18px;background:rgba(0,217,245,.12)}
+.admin-code-ico.gold{background:rgba(246,217,133,.14)}
+.admin-code-head h3{font-size:14px}
+.admin-code-head p{color:var(--muted);font-size:11px;margin-top:2px}
+.admin-code-card textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(1,12,32,.78);color:var(--cyan);font:inherit;font-size:13px;resize:vertical;outline:0;min-height:90px}
+.admin-code-card textarea:focus{border-color:var(--cyan)}
+.admin-code-card .row{margin-top:10px}
+.admin-report{display:grid;gap:12px}
+.admin-table-card{background:rgba(2,20,50,.7);border:1px solid var(--line);border-radius:14px;padding:16px;min-width:0}
+.admin-table-card h3{font-size:14px;margin-bottom:12px}
+@media(max-width:620px){
+  .admin-top{justify-content:flex-start}
+  .admin-action-form .btn{width:100%}
+  .admin-code-card .row .btn{flex:1 1 100%}
+}
+
+/* Selo de limite nos planos */
+.plano-selo{
+  display:block;margin:8px auto -4px;width:max-content;max-width:90%;
+  padding:4px 10px;border-radius:999px;
+  background:rgba(246,217,133,.12);border:1px solid rgba(246,217,133,.4);
+  color:var(--gold);font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+  word-break:break-word;text-align:center;
+}
+.plano-card:first-child .plano-selo{background:rgba(78,230,176,.12);border-color:rgba(78,230,176,.4);color:var(--green)}
+button.plano-esgotado,
+.plano-card button:disabled{
+  opacity:.5!important;cursor:not-allowed!important;
+  background:rgba(255,255,255,.08)!important;color:var(--muted)!important;
+  box-shadow:none!important;
+}
+
+/* Correção final: subtítulos do admin não cortam no celular */
+.admin-top p,.admin-sec-head small{white-space:normal;word-break:break-word;max-width:100%;line-height:1.3}
+.admin-sec-head{align-items:flex-start}
+@media(max-width:480px){
+  .admin-top p,.admin-sec-head small{font-size:10px}
+}

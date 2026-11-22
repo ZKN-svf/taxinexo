@@ -41,7 +41,9 @@ const CONFIG = {
   horarioSaqueInicio: 11,
   horarioSaqueFim: 18,
   bonusIndicacao: 2.00,
-  codigo_roleta: 'ROLETA'
+  codigo_roleta: 'ROLETA',
+  codigo_bonus: 'TAXINEXO',
+  valor_bonus: 5.00
 };
 
 // Planos do Taxinexo (diária × ciclo = retorno)
@@ -334,11 +336,31 @@ function iconePlano(tipo) {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${desenhos[tipo] || ''}</svg>`;
 }
 
-function carregarPlanos() {
+// Limites: plano grátis só 1 vez; planos pagos até 2 vezes por usuário.
+function limiteDoPlano(p) { return p.id === 0 ? 1 : 2; }
+async function contarInvestimentosDoPlano(uid, planoId) {
+  if (!db) return 0;
+  const keys = await chavesDaLista('investimentos_usuario/' + uid);
+  const itens = await lerCada('investimentos', keys);
+  return itens.filter(x => Number(x.valor.plano_id) === Number(planoId)).length;
+}
+
+async function carregarPlanos() {
   const container = el('listaPlanos'); if (!container) return;
-  container.innerHTML = planos.map((p) => `
+  const u = usuarioLocal();
+  const contagens = {};
+  if (u && db) {
+    for (const p of planos) contagens[p.id] = await contarInvestimentosDoPlano(u.id, p.id);
+  }
+  const html = await Promise.all(planos.map(async (p) => {
+    const usados = contagens[p.id] || 0;
+    const limite = limiteDoPlano(p);
+    const esgotado = usados >= limite;
+    const selo = p.id === 0 ? 'limitado a 1x' : 'até 2x por conta';
+    return `
     <article class="plano-card" aria-label="${p.nome}">
       <h4>${p.nome.toUpperCase()}</h4>
+      <span class="plano-selo">${selo}</span>
       <img class="plan-car" src="plan-car.webp" alt="Carro Taxinexo" width="1000" height="534" loading="lazy">
       <dl class="plan-facts">
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('entrada')}</span><dt>Entrada</dt><dd>${fmtBRL(p.entrada)}</dd></div>
@@ -346,15 +368,22 @@ function carregarPlanos() {
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('ciclo')}</span><dt>Ciclo</dt><dd>${p.ciclo} Dias</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('retorno')}</span><dt>Total recebido</dt><dd>${fmtBRL(p.retorno)}</dd></div>
       </dl>
-      <button onclick="escolherPlano(${p.id})" aria-label="Escolher ${p.nome}">Investir neste plano <span aria-hidden="true">→</span></button>
-    </article>
-  `).join('');
+      <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${p.nome}">
+        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">→</span>
+      </button>
+    </article>`;
+  }));
+  container.innerHTML = html.join('');
 }
 
-function escolherPlano(id) {
+async function escolherPlano(id) {
   const u = usuarioLocal();
   if (!u) return toast('Faça login para investir.');
   const p = planos.find(x => x.id === Number(id)); if (!p) return;
+  const usados = await contarInvestimentosDoPlano(u.id, p.id);
+  if (usados >= limiteDoPlano(p)) {
+    return toast(p.id === 0 ? 'O plano grátis só pode ser usado 1 vez.' : 'Este plano já foi contratado 2 vezes.');
+  }
   const sel = el('investirPlano'); if (sel) sel.value = String(id);
   const info = el('investirInfo');
   if (info) info.textContent = `${p.nome} • Entrada ${fmtBRL(p.entrada)} • Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias • Total ${fmtBRL(p.retorno)}`;
@@ -571,6 +600,10 @@ async function confirmarInvestimento() {
   const total = (Number(u.saldo) || 0) + (Number(u.saldo_indicacao) || 0);
   if (total < p.entrada) return toast(`Saldo insuficiente! Você tem ${fmtBRL(total)} e precisa de ${fmtBRL(p.entrada)}.`);
   if (!db) return toast('Firebase não conectado.');
+  const usados = await contarInvestimentosDoPlano(u.id, p.id);
+  if (usados >= limiteDoPlano(p)) {
+    return toast(p.id === 0 ? 'O plano grátis só pode ser usado 1 vez.' : 'Este plano já foi contratado 2 vezes.');
+  }
 
   try {
     const agora = new Date();
@@ -748,7 +781,14 @@ async function carregarAdmin() {
     if (el('adminInvestimentos')) el('adminInvestimentos').textContent = investimentos.filter(i => i.status === 'ativo').length;
     if (el('adminTotalInvestido')) el('adminTotalInvestido').textContent = fmtBRL(soma(investimentos, 'valor_aplicado'));
     if (el('adminTotalRendimentos')) el('adminTotalRendimentos').textContent = fmtBRL(soma(usuarios, 'rendimentos'));
-    if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saques, 'valor_liquido'));
+    if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saques.filter(s => s.status === 'pago'), 'valor_liquido'));
+
+    if (el('adminSaldoGateway')) {
+      try {
+        const sg = await SigiloPay.consultarSaldo();
+        el('adminSaldoGateway').textContent = sg.sucesso ? fmtBRL(sg.available) : '—';
+      } catch (_) { el('adminSaldoGateway').textContent = '—'; }
+    }
 
     const tbody = el('adminRendimentosBody');
     if (tbody) {
@@ -879,6 +919,53 @@ async function salvarCodigosRoleta() {
   setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 
+// Códigos de bônus (1 resgate por código por cliente)
+function listaCodigosBonus() {
+  const bruto = CONFIG.codigo_bonus || 'TAXINEXO';
+  const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\n,]+/);
+  return arr.map(x => String(x).trim().toUpperCase()).filter(Boolean);
+}
+async function carregarCodigosBonus() {
+  if (!db) return;
+  try {
+    const s = await db.child('config/codigo_bonus').once('value');
+    if (s.exists()) CONFIG.codigo_bonus = s.val();
+    const campo = el('adminCodigosBonus');
+    if (campo) campo.value = listaCodigosBonus().join('\n');
+  } catch (e) { console.warn('[Bônus]', e); }
+}
+async function salvarCodigosBonus() {
+  const campo = el('adminCodigosBonus');
+  if (!campo || !db) return;
+  const lista = campo.value.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+  if (!lista.length) return setMensagem('adminBonusMsg', 'Digite pelo menos um código.', 'error');
+  await db.child('config/codigo_bonus').set(lista);
+  CONFIG.codigo_bonus = lista;
+  setMensagem('adminBonusMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
+}
+async function resgatarBonus(codigo, usuario) {
+  if (!listaCodigosBonus().includes(codigo)) return setMensagem('bonusResult', 'Código inválido.', 'error');
+  if (!db) return setMensagem('bonusResult', 'Firebase não conectado.', 'error');
+  const jaPegou = await db.child('bonus_resgates/' + usuario.id + '/' + codigo).once('value');
+  if (jaPegou.exists()) return setMensagem('bonusResult', 'Você já resgatou este código.', 'error');
+  const valor = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
+  const snap = await db.child('usuarios/' + usuario.id).once('value');
+  if (!snap.exists()) return setMensagem('bonusResult', 'Usuário não encontrado.', 'error');
+  const atual = snap.val();
+  await db.child('usuarios/' + usuario.id + '/saldo').set((Number(atual.saldo) || 0) + valor);
+  await db.child('bonus_resgates/' + usuario.id + '/' + codigo).set(new Date().toISOString());
+  const tx = await db.child('transacoes').push({
+    usuario_id: usuario.id, usuario_email: usuario.email, usuario_nome: usuario.nome,
+    tipo: 'bonus', valor, status: 'aprovada',
+    observacao: `Bônus resgatado — código ${codigo}`, criado_em: new Date().toISOString()
+  });
+  await db.child('transacoes_usuario/' + usuario.id + '/' + tx.key).set(true);
+  usuario.saldo = (Number(atual.saldo) || 0) + valor;
+  salvarUsuarioLocal(usuario);
+  if (el('saldo')) el('saldo').textContent = Number(usuario.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  setMensagem('bonusResult', `Bônus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
+}
+
 // ------------------------------------------------------------
 // BÔNUS E RODADA
 // ------------------------------------------------------------
@@ -890,12 +977,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const bonusForm = el('bonusForm');
   if (bonusForm) {
-    bonusForm.addEventListener('submit', (e) => {
+    bonusForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const code = el('bonusCode').value.trim().toUpperCase();
-      setMensagem('bonusResult', code !== 'TAXINEXO'
-        ? 'Código inválido. Para testar, digite TAXINEXO.'
-        : 'Bônus revelado! Demonstração: nenhum valor foi adicionado ao saldo.', code === 'TAXINEXO' ? 'success' : 'error');
+      const u = usuarioLocal();
+      if (!u) return setMensagem('bonusResult', 'Faça login para resgatar.', 'error');
+      setMensagem('bonusResult', 'Resgatando...', 'loading');
+      await resgatarBonus(code, u);
     });
   }
 
