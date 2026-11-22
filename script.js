@@ -923,6 +923,41 @@ async function alternarBloqueioSaques() {
 }
 
 // ------------------------------------------------------------
+// ADMIN — LINK DO GRUPO
+// ------------------------------------------------------------
+const LINK_GRUPO_PADRAO = 'https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2';
+function aplicarLinkGrupo(url) {
+  const link = String(url || LINK_GRUPO_PADRAO);
+  document.querySelectorAll('#linkGrupo').forEach(a => { a.href = link; });
+  localStorage.setItem('taxinexo_link_grupo', link);
+}
+async function carregarLinkGrupo() {
+  let url = LINK_GRUPO_PADRAO;
+  try {
+    if (db) {
+      const s = await db.child('config/link_grupo').once('value');
+      if (s.exists() && s.val()) url = s.val();
+    }
+  } catch (_) {
+    url = localStorage.getItem('taxinexo_link_grupo') || LINK_GRUPO_PADRAO;
+  }
+  aplicarLinkGrupo(url);
+  const campo = el('adminLinkGrupo');
+  if (campo) campo.value = url;
+  return url;
+}
+async function salvarLinkGrupo() {
+  const campo = el('adminLinkGrupo');
+  if (!campo) return;
+  const url = campo.value.trim();
+  if (!/^https?:\/\//i.test(url)) return setMensagem('adminLinkGrupoMsg', 'Informe uma URL válida (começa com https://).', 'error');
+  if (!db) return setMensagem('adminLinkGrupoMsg', 'Firebase não conectado.', 'error');
+  await db.child('config/link_grupo').set(url);
+  aplicarLinkGrupo(url);
+  setMensagem('adminLinkGrupoMsg', 'Link do grupo salvo e aplicado em todas as páginas.', 'success');
+}
+
+// ------------------------------------------------------------
 // ADMIN — CÓDIGOS DA ROLETA
 // ------------------------------------------------------------
 function listaCodigosRoleta() {
@@ -1002,6 +1037,7 @@ async function resgatarBonus(codigo, usuario) {
 document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
   carregarCodigosRoleta();
+  carregarLinkGrupo();
 
   if (location.pathname.includes('cliente.html')) iniciarDashboard();
 

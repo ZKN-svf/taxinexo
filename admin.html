@@ -69,6 +69,24 @@
         </div>
       </section>
 
+      <!-- LINK DO GRUPO -->
+      <section class="admin-section">
+        <div class="admin-sec-head"><h2>Link do grupo</h2><small>Botão flutuante do WhatsApp</small></div>
+        <article class="admin-action">
+          <span class="admin-action-ico green">💬</span>
+          <div style="flex:1 1 100%">
+            <h3>Link de convite do grupo</h3>
+            <p>Este link aparece no botão verde do canto da tela em todas as páginas.</p>
+            <div class="search-row" style="margin-top:10px;">
+              <input id="adminLinkGrupo" placeholder="https://chat.whatsapp.com/..." style="flex:1 1 260px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(1,12,32,.75);color:#fff;outline:0;">
+              <button class="btn" onclick="salvarLinkGrupo()">Salvar link</button>
+              <button class="btn secondary" onclick="carregarLinkGrupo()">Recarregar</button>
+            </div>
+            <p class="result" id="adminLinkGrupoMsg" role="status" aria-live="polite"></p>
+          </div>
+        </article>
+      </section>
+
       <!-- CÓDIGOS -->
       <section class="admin-section">
         <div class="admin-sec-head"><h2>Códigos promocionais</h2><small>Um código por linha</small></div>
@@ -137,6 +155,6 @@
   </script>
 
   <!-- Grupo WhatsApp -->
-  <a class="grp-whats" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo"><span aria-hidden="true">💬</span> Grupo</a>
+  <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo"><span aria-hidden="true">💬</span> Grupo</a>
 </body>
 </html>
