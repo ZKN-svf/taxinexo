@@ -399,3 +399,15 @@ button.plano-esgotado,
 @media(max-width:480px){
   .admin-top p,.admin-sec-head small{font-size:10px}
 }
+
+/* ============================================================
+   CORREÇÃO FINAL — painéis, cabeçalhos e botão do grupo
+   ============================================================ */
+.panel{ padding:20px !important; }
+.section-heading>span{ display:inline-block !important; }
+.section-heading h2{ flex:1 1 auto !important; min-width:0; }
+.section-heading{ min-width:0 !important; }
+@media(max-width:480px){ .panel{ padding:16px !important; } }
+
+/* Botão do grupo no canto INFERIOR ESQUERDO */
+.grp-whats{ left:16px !important; right:auto !important; }
