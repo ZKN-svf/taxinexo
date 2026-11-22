@@ -41,9 +41,14 @@
         <button onclick="mostrarExtrato()"><span aria-hidden="true">▤</span>Extrato <b>→</b></button>
       </div>
 
-      <section class="panel" id="indicacaoBox">
-        <div class="section-heading"><h2>Indique e ganhe</h2><span>R$ 2,00 por amigo</span></div>
-        <p style="color:var(--muted);font-size:13px;">Seu código: <strong id="codigoIndicacao" style="color:var(--cyan);">----</strong></p>
+      <section class="panel invite-card" id="indicacaoBox">
+        <div class="section-heading"><h2>Indique e ganhe</h2><span class="pill">R$ 2,00 por amigo</span></div>
+        <p class="muted" style="font-size:13px;margin-bottom:10px;">Compartilhe seu link e ganhe a cada amigo que investir.</p>
+        <div class="invite-row">
+          <input id="linkIndicacao" readonly aria-label="Seu link de indicação" onclick="this.select();">
+          <button class="btn small" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar</button>
+        </div>
+        <p class="hint" style="margin-top:8px;">Seu código: <strong id="codigoIndicacao" class="cyan">----</strong></p>
       </section>
 
       <section class="panel" id="investimentosBox">

@@ -45,12 +45,14 @@ const CONFIG = {
 
 // Planos do Taxinexo (diária × ciclo = retorno)
 const planos = [
-  { id: 0, nome: 'Grátis', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
+  { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
   { id: 1, nome: 'Plano 15', entrada: 15, diaria: 3, ciclo: 10, retorno: 30 },
   { id: 2, nome: 'Plano 25', entrada: 25, diaria: 5, ciclo: 10, retorno: 50 },
   { id: 3, nome: 'Plano 50', entrada: 50, diaria: 10, ciclo: 10, retorno: 100 },
   { id: 4, nome: 'Plano 100', entrada: 100, diaria: 20, ciclo: 10, retorno: 200 },
-  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 100, ciclo: 10, retorno: 1000 }
+  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 100, ciclo: 10, retorno: 1000 },
+  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 140, ciclo: 10, retorno: 1400 },
+  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 200, ciclo: 10, retorno: 2000 }
 ];
 
 // ------------------------------------------------------------
@@ -310,6 +312,10 @@ async function iniciarDashboard() {
   if (el('totalGeral')) el('totalGeral').textContent = fmtBRL((atual.investido || 0) * 3.2);
   if (el('saldoIndicacao')) el('saldoIndicacao').textContent = fmtBRL(atual.saldo_indicacao);
   if (el('codigoIndicacao')) el('codigoIndicacao').textContent = atual.codigo_indicacao || '----';
+  const linkInput = el('linkIndicacao');
+  if (linkInput && atual.codigo_indicacao) {
+    linkInput.value = location.origin + location.pathname + '?ref=' + encodeURIComponent(atual.codigo_indicacao);
+  }
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
 
   carregarPlanos();
@@ -331,7 +337,7 @@ function carregarPlanos() {
   const container = el('listaPlanos'); if (!container) return;
   container.innerHTML = planos.map((p) => `
     <article class="plano-card" aria-label="${p.nome}">
-      <h4>${p.id === 0 ? 'TAXINEXO GRATUITO' : 'PLANO TAXINEXO ' + p.nome.replace('Plano ', '')}</h4>
+      <h4>${p.nome.toUpperCase()}</h4>
       <img class="plan-car" src="plan-car.webp" alt="Carro Taxinexo" width="1000" height="534" loading="lazy">
       <dl class="plan-facts">
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('entrada')}</span><dt>Entrada</dt><dd>${fmtBRL(p.entrada)}</dd></div>
@@ -397,6 +403,12 @@ async function carregarExtrato() {
 }
 function mostrarExtrato() {
   const d = el('extratoDialog'); if (d) d.showModal();
+}
+function copiarLinkIndicacao() {
+  const input = el('linkIndicacao'); if (!input) return;
+  input.select(); input.setSelectionRange(0, 99999);
+  try { document.execCommand('copy'); } catch (e) { if (navigator.clipboard) navigator.clipboard.writeText(input.value); }
+  toast('Link de indicação copiado!');
 }
 
 // ------------------------------------------------------------
