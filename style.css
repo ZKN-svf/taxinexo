@@ -421,3 +421,52 @@ button.plano-esgotado,
 .invest-timer-ico{flex:none;font-size:15px;color:var(--gold)}
 .invest-timer-txt{min-width:0;word-break:break-word}
 .invest-timer strong{color:var(--gold);font-size:14px;font-variant-numeric:tabular-nums;letter-spacing:.5px}
+
+/* ===== ABA EQUIPE ===== */
+.dash-tabs{display:flex;gap:8px;margin:0 0 18px;padding:5px;border:1px solid rgba(0,141,255,.35);border-radius:14px;background:linear-gradient(120deg,#052557bb,#03152eee);box-shadow:inset 0 0 20px #0067ff22}
+.dash-tab{flex:1;padding:12px 14px;border:0;border-radius:10px;background:transparent;color:var(--muted);font-size:13px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;transition:.2s}
+.dash-tab:hover{color:#fff;background:#008dff22}
+.dash-tab.ativa{background:linear-gradient(135deg,#00d9f5,#0067ff);color:#02132e;box-shadow:0 8px 24px #0067ff55}
+.team-panel{padding:22px}
+.team-total{display:flex;align-items:center;gap:16px;margin:6px 0 20px;padding:18px 20px;border:1px solid rgba(0,217,245,.35);border-radius:16px;background:linear-gradient(120deg,#063b7d88,#031a39cc);box-shadow:inset 0 0 26px #00d9f518}
+.team-total-ico{font-size:34px;filter:drop-shadow(0 0 12px #00d9f5)}
+.team-total>div:nth-child(2){display:flex;flex-direction:column}
+.team-total span{font-size:11px;letter-spacing:1.6px;color:var(--muted);font-weight:800}
+.team-total strong{font-size:42px;line-height:1.05;color:#fff;text-shadow:0 0 18px #00d9f566}
+.team-total-obs{margin-left:auto;max-width:150px;font-size:11px;color:var(--muted);text-align:right;line-height:1.4}
+.team-list{display:flex;flex-direction:column;gap:9px}
+.team-item{display:flex;align-items:center;gap:13px;padding:13px 15px;border:1px solid rgba(0,141,255,.28);border-radius:13px;background:linear-gradient(100deg,#052a5a77,#03173499);transition:.2s}
+.team-item:hover{border-color:var(--cyan);transform:translateX(3px);box-shadow:0 6px 18px #0067ff22}
+.team-avatar{width:40px;height:40px;flex:none;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#00d9f5,#0067ff);color:#02132e;font-weight:900;font-size:16px}
+.team-info{flex:1;min-width:0}
+.team-info strong{display:block;font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.team-info small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.team-status{padding:5px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.5px;white-space:nowrap}
+.team-status.pendente{background:#ffb02022;color:#ffc65c;border:1px solid #ffb02055}
+.team-status.investiu{background:#00e5a822;color:#4dffc3;border:1px solid #00e5a855}
+.goals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:6px}
+.goal-card{position:relative;padding:20px;border:1px solid rgba(0,141,255,.32);border-radius:17px;background:linear-gradient(150deg,#06368199,#03152fdd);overflow:hidden;transition:.25s}
+.goal-card::after{content:'';position:absolute;top:-60px;right:-60px;width:150px;height:150px;border-radius:50%;background:radial-gradient(circle,#00d9f522,transparent 70%);pointer-events:none}
+.goal-card:hover{transform:translateY(-4px);border-color:var(--cyan);box-shadow:0 14px 32px #0067ff33}
+.goal-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.goal-ico{font-size:30px;filter:drop-shadow(0 0 10px #00d9f5)}
+.goal-tag{font-size:9px;letter-spacing:1.4px;color:var(--cyan);font-weight:800;border:1px solid #00d9f544;border-radius:999px;padding:4px 9px}
+.goal-card h3{margin:0 0 7px;font-size:15px;letter-spacing:.6px;color:#fff}
+.goal-prize{margin:0 0 14px;font-size:11px;letter-spacing:1px;color:var(--muted)}
+.goal-prize strong{font-size:21px;display:block;color:#4dffc3;margin-top:3px;text-shadow:0 0 14px #00e5a844}
+.goal-progress{height:8px;border-radius:99px;background:#02132e;border:1px solid #008dff44;overflow:hidden}
+.goal-progress span{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#00d9f5,#0067ff);transition:width .5s ease}
+.goal-count{display:block;margin:8px 0 14px;font-size:11px;color:var(--muted)}
+.goal-btn{width:100%;padding:12px;border:0;border-radius:11px;background:linear-gradient(135deg,#00d9f5,#0067ff);color:#02132e;font-weight:900;font-size:12px;letter-spacing:1.2px;transition:.2s}
+.goal-btn:hover:not(:disabled){filter:brightness(1.12);box-shadow:0 8px 22px #00d9f544}
+.goal-btn:disabled{background:#0a2447;color:#5c7fa8;cursor:not-allowed;border:1px solid #008dff33}
+.goal-card.concluida{border-color:#00e5a877;box-shadow:0 0 26px #00e5a822}
+.goal-card.resgatada{border-color:#00e5a8;box-shadow:0 0 30px #00e5a844}
+.goal-card.resgatada .goal-btn{background:#00e5a833;color:#4dffc3;border:1px solid #00e5a877}
+@media(max-width:620px){.team-total-obs{display:none}.team-total strong{font-size:34px}.goals-grid{grid-template-columns:1fr}}
+.hidden{display:none!important}
+.team-empty{text-align:center;padding:34px 20px;border:1px dashed rgba(0,141,255,.35);border-radius:15px;background:#02142e66}
+.team-empty>span{font-size:42px;display:block;margin-bottom:10px}
+.team-empty h3{margin:0 0 7px;font-size:16px;color:#fff}
+.team-empty p{margin:0 auto 16px;max-width:360px;font-size:12px;line-height:1.6;color:var(--muted)}
+.team-empty button{max-width:220px;margin:0 auto}

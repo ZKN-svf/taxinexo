@@ -254,13 +254,36 @@ async function fazerCadastro() {
       codigo_indicacao: gerarCodigoIndicacao(),
       indicado_por: indicadoPor ? indicadoPor.id : null,
       indicado_por_email: indicadoPor ? indicadoPor.email : null,
-      bonus_recebido: false,
+      // bônus é creditado no cadastro; marca como recebido para não duplicar no investimento
+      bonus_recebido: indicadoPor ? true : false,
       criado_em: new Date().toISOString(),
       role: 'user'
     };
     await db.child('usuarios/' + id).set(usuario);
     await db.child('email_index/' + emailKey(email)).set(id);
     await db.child('codigo_index/' + usuario.codigo_indicacao).set(id);
+    // índice de indicados: permite listar o time sem varrer todos os usuários
+    if (indicadoPor) {
+      await db.child('indicados_index/' + indicadoPor.id + '/' + id).set({
+        nome, email, criado_em: usuario.criado_em, investiu: false
+      });
+    }
+    // credita o bônus de indicação para o padrinho já no cadastro
+    if (indicadoPor) {
+      const pk = indicadoPor.id;
+      const ps = await db.child('usuarios/' + pk).once('value');
+      if (ps.exists()) {
+        const padrinho = ps.val();
+        await db.child('usuarios/' + pk + '/saldo_indicacao').set((Number(padrinho.saldo_indicacao) || 0) + CONFIG.bonusIndicacao);
+        await db.child('usuarios/' + pk + '/bonus').set((Number(padrinho.bonus) || 0) + CONFIG.bonusIndicacao);
+        const txInd = await db.child('transacoes').push({
+          usuario_id: pk, usuario_email: padrinho.email, usuario_nome: padrinho.nome,
+          tipo: 'indicacao', valor: CONFIG.bonusIndicacao, status: 'aprovada',
+          observacao: `Bônus por indicação — ${nome} se cadastrou`, criado_em: new Date().toISOString()
+        });
+        await db.child('transacoes_usuario/' + pk + '/' + txInd.key).set(true);
+      }
+    }
     salvarUsuarioLocal(usuario);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
     toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nGanhe ${fmtBRL(CONFIG.bonusIndicacao)} por amigo que investir!`);
@@ -325,6 +348,140 @@ async function iniciarDashboard() {
   await carregarInvestimentos();
   atualizarTimers();
   await carregarExtrato();
+  await carregarEquipe();
+}
+
+// ------------------------------------------------------------
+// EQUIPE / INDICADOS / METAS
+// ------------------------------------------------------------
+function escTexto(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+const METAS_EQUIPE = [
+  { qtd: 20, premio: 15 },
+  { qtd: 50, premio: 35 },
+  { qtd: 100, premio: 50 },
+];
+
+function alternarAba(nome) {
+  const inicio = el('abaInicio'), equipe = el('abaEquipe');
+  if (inicio) inicio.classList.toggle('hidden', nome !== 'inicio');
+  if (equipe) equipe.classList.toggle('hidden', nome !== 'equipe');
+  $$('.dash-tab').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  if (nome === 'equipe') carregarEquipe();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+async function carregarEquipe() {
+  const u = usuarioLocal();
+  if (!u || !db) return;
+  const lista = el('listaIndicados');
+  try {
+    // 1) índice direto em UMA leitura (cadastros novos)
+    const idxSnap = await db.child('indicados_index/' + u.id).once('value');
+    const idx = idxSnap.val() || {};
+    const indicados = Object.entries(idx).map(([id, v]) => ({ id, ...v }));
+    const vistos = new Set(indicados.map(x => x.id));
+
+    // 2) fallback em UMA consulta indexada para cadastros antigos sem índice
+    try {
+      const url = firebaseConfig.databaseURL + '/taxinexo/usuarios.json?orderByChild=indicado_por&equalTo=' + encodeURIComponent(u.id);
+      const antigos = await (await fetch(url)).json();
+      if (antigos && typeof antigos === 'object') {
+        for (const [id, w] of Object.entries(antigos)) {
+          if (!vistos.has(id)) {
+            indicados.push({ id, nome: w.nome, email: w.email, criado_em: w.criado_em, investiu: undefined });
+            vistos.add(id);
+          }
+        }
+      }
+    } catch (_) { /* fallback opcional */ }
+
+    // 3) quem investiu: UMA leitura shallow do índice de investimentos
+    let investIdx = {};
+    try {
+      const si = await (await fetch(firebaseConfig.databaseURL + '/taxinexo/investimentos_usuario.json?shallow=true')).json();
+      if (si && typeof si === 'object') investIdx = si;
+    } catch (_) {}
+    for (const ind of indicados) {
+      if (ind.investiu === undefined) ind.investiu = Object.prototype.hasOwnProperty.call(investIdx, ind.id);
+    }
+    indicados.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
+
+    if (el('totalIndicados')) el('totalIndicados').textContent = String(indicados.length);
+
+    if (lista) {
+      if (!indicados.length) {
+        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">🤝</span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
+      } else {
+        lista.innerHTML = indicados.map(ind => {
+          const inicial = String(ind.nome || '?').trim()[0]?.toUpperCase() || '?';
+          const data = ind.criado_em ? new Date(ind.criado_em).toLocaleDateString('pt-BR') : '';
+          const email = String(ind.email || '');
+          const emailCurto = email.length > 26 ? email.slice(0, 24) + '…' : email;
+          return `<div class="team-item">
+            <div class="team-avatar">${escTexto(inicial)}</div>
+            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' • ' + data : ''}</small></div>
+            <span class="team-status ${ind.investiu ? 'investiu' : 'pendente'}">${ind.investiu ? 'INVESTIU' : 'CADASTRADO'}</span>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // metas
+    const resgatadas = await chavesDaLista('metas_resgatadas/' + u.id);
+    for (const meta of METAS_EQUIPE) {
+      const barra = el('barra' + meta.qtd), contador = el('contador' + meta.qtd), btn = el('btnMeta' + meta.qtd);
+      const pct = Math.min(100, (indicados.length / meta.qtd) * 100);
+      if (barra) barra.style.width = pct + '%';
+      if (contador) contador.textContent = `${indicados.length} de ${meta.qtd} indicados`;
+      const concluida = indicados.length >= meta.qtd;
+      const jaResgatou = resgatadas.includes(String(meta.qtd));
+      const card = el('meta' + meta.qtd);
+      if (card) {
+        card.classList.toggle('concluida', concluida && !jaResgatou);
+        card.classList.toggle('resgatada', jaResgatou);
+      }
+      if (btn) {
+        btn.disabled = !concluida || jaResgatou;
+        btn.textContent = jaResgatou ? 'RESGATADO ✓' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - indicados.length)}`);
+        btn.onclick = () => resgatarMeta(meta.qtd, meta.premio);
+      }
+    }
+  } catch (e) {
+    console.error('[Equipe]', e);
+    if (lista) lista.innerHTML = `<p class="empty-state">Não foi possível carregar sua equipe.</p>`;
+  }
+}
+
+async function resgatarMeta(qtd, premio) {
+  const u = usuarioLocal();
+  if (!u || !db) return;
+  if (!confirm(`Resgatar o prêmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
+  try {
+    const ja = await db.child('metas_resgatadas/' + u.id + '/' + qtd).once('value');
+    if (ja.exists()) return toast('Esta meta já foi resgatada.');
+    const snap = await db.child('usuarios/' + u.id).once('value');
+    const atual = snap.exists() ? snap.val() : u;
+    await db.child('usuarios/' + u.id + '/saldo_indicacao').set((Number(atual.saldo_indicacao) || 0) + premio);
+    await db.child('usuarios/' + u.id + '/bonus').set((Number(atual.bonus) || 0) + premio);
+    const tx = await db.child('transacoes').push({
+      usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
+      tipo: 'indicacao', valor: premio, status: 'aprovada',
+      observacao: `Resgate de meta — ${qtd} indicados`, criado_em: new Date().toISOString()
+    });
+    await db.child('transacoes_usuario/' + u.id + '/' + tx.key).set(true);
+    await db.child('metas_resgatadas/' + u.id + '/' + qtd).set({ valor: premio, resgatado_em: new Date().toISOString() });
+    const local = usuarioLocal();
+    local.saldo_indicacao = (Number(atual.saldo_indicacao) || 0) + premio;
+    local.bonus = (Number(atual.bonus) || 0) + premio;
+    salvarUsuarioLocal(local);
+    toast(`${fmtBRL(premio)} creditados no saldo de indicação!`);
+    await carregarEquipe();
+  } catch (e) {
+    toast('Erro ao resgatar: ' + e.message);
+  }
 }
 
 function iconePlano(tipo) {

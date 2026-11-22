@@ -18,6 +18,12 @@
 
   <div class="dashboard-layout">
     <main class="dashboard-main">
+      <nav class="dash-tabs" aria-label="Seções do painel">
+        <button class="dash-tab ativa" data-aba="inicio" onclick="alternarAba('inicio')">Visão geral</button>
+        <button class="dash-tab" data-aba="equipe" onclick="alternarAba('equipe')">Equipe</button>
+      </nav>
+
+      <div id="abaInicio">
       <section class="dashboard-hero" aria-label="Seu futuro começa agora. Invista com segurança e faça seu dinheiro render.">
         <img src="dashboard-banner.webp" alt="Seu futuro começa agora. Invista com segurança e faça seu dinheiro render.">
       </section>
@@ -46,7 +52,7 @@
           <div class="invite-ico" aria-hidden="true">★</div>
           <div class="invite-txt">
             <h2>Indique e ganhe</h2>
-            <p>Ganhe <strong>R$ 2,00</strong> por amigo que fizer um investimento.</p>
+            <p>Ganhe <strong>R$ 2,00</strong> por amigo que se cadastrar pelo seu link.</p>
           </div>
           <span class="invite-badge">R$ 2,00</span>
         </div>
@@ -110,6 +116,49 @@
         <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato →</button></div>
         <div id="extratoResumo"><p class="empty-state">Carregando...</p></div>
       </section>
+      </div><!-- /abaInicio -->
+
+      <div id="abaEquipe" class="hidden">
+        <section class="panel team-panel">
+          <div class="section-heading"><h2>EQUIPE</h2><span>Seu time de indicados</span></div>
+          <div class="team-total">
+            <div class="team-total-ico" aria-hidden="true">👥</div>
+            <div><span>TOTAL INDICADOS</span><strong id="totalIndicados">0</strong></div>
+            <div class="team-total-obs">Pessoas que se cadastraram pelo seu link</div>
+          </div>
+          <div class="team-list" id="listaIndicados"><p class="empty-state">Carregando...</p></div>
+        </section>
+
+        <section class="panel team-panel">
+          <div class="section-heading"><h2>METAS</h2><span>Alcance e resgate seus prêmios</span></div>
+          <div class="goals-grid">
+            <article class="goal-card" id="meta20">
+              <div class="goal-top"><span class="goal-ico">🥉</span><span class="goal-tag">META 01</span></div>
+              <h3>INDIQUE 20 PESSOAS</h3>
+              <p class="goal-prize">PRÊMIO <strong>R$ 15,00</strong></p>
+              <div class="goal-progress"><span id="barra20"></span></div>
+              <small class="goal-count" id="contador20">0 de 20 indicados</small>
+              <button class="goal-btn" id="btnMeta20" disabled>RESGATAR</button>
+            </article>
+            <article class="goal-card" id="meta50">
+              <div class="goal-top"><span class="goal-ico">🥈</span><span class="goal-tag">META 02</span></div>
+              <h3>INDIQUE 50 PESSOAS</h3>
+              <p class="goal-prize">PRÊMIO <strong>R$ 35,00</strong></p>
+              <div class="goal-progress"><span id="barra50"></span></div>
+              <small class="goal-count" id="contador50">0 de 50 indicados</small>
+              <button class="goal-btn" id="btnMeta50" disabled>RESGATAR</button>
+            </article>
+            <article class="goal-card" id="meta100">
+              <div class="goal-top"><span class="goal-ico">🏆</span><span class="goal-tag">META 03</span></div>
+              <h3>INDIQUE 100 PESSOAS</h3>
+              <p class="goal-prize">PRÊMIO <strong>R$ 50,00</strong></p>
+              <div class="goal-progress"><span id="barra100"></span></div>
+              <small class="goal-count" id="contador100">0 de 100 indicados</small>
+              <button class="goal-btn" id="btnMeta100" disabled>RESGATAR</button>
+            </article>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 
