@@ -212,3 +212,37 @@ select option{background:#02142e;color:#fff}
   .saldo-indicacao{text-align:left}
   .invite-row .btn{width:100%}
 }
+
+/* ============================================================
+   CORREÇÕES FINAIS — botões, cabeçalhos e tabelas no celular
+   ============================================================ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  min-height:44px;padding:10px 18px;border-radius:10px;
+  border:1px solid var(--cyan);color:#fff;text-decoration:none;
+  background:linear-gradient(135deg,#0067ff,#00a8d8);
+  font-family:'Barlow','Segoe UI',sans-serif;font-weight:800;font-size:14px;
+  line-height:1.2;white-space:nowrap;cursor:pointer;
+}
+.btn:hover{filter:brightness(1.12);text-decoration:none}
+.btn.small{min-height:36px;padding:7px 13px;font-size:12px}
+.btn.secondary{background:rgba(0,70,150,.25);border-color:var(--line)}
+
+/* Cabeçalhos de seção: nunca deixam o texto vazar */
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-width:100%}
+.section-heading h2{flex:1 1 160px;min-width:0;word-break:break-word;line-height:1.25}
+.section-heading>span,.section-heading .pill{flex:none;max-width:100%;white-space:normal;word-break:break-word}
+
+/* Tabelas responsivas: viram cards no celular */
+@media(max-width:620px){
+  .table-scroll,section [style*="overflow-x"]{overflow-x:visible!important}
+  table{min-width:0!important;width:100%!important}
+  thead{display:none}
+  tbody,tr,td{display:block;width:100%}
+  tr{background:rgba(1,14,36,.55);border:1px solid var(--line);border-radius:11px;padding:10px;margin-bottom:10px}
+  td{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 2px;border-bottom:1px dashed var(--line);text-align:right;font-size:13px;word-break:break-word}
+  td:last-child{border-bottom:0}
+  td::before{content:attr(data-label);flex:none;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;text-align:left}
+  td[colspan]{display:block;text-align:center}
+  td[colspan]::before{content:none}
+}
