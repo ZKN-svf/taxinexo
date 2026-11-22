@@ -40,7 +40,8 @@ const CONFIG = {
   taxaSaquePorcento: 10,
   horarioSaqueInicio: 11,
   horarioSaqueFim: 18,
-  bonusIndicacao: 2.00
+  bonusIndicacao: 2.00,
+  codigo_roleta: 'ROLETA'
 };
 
 // Planos do Taxinexo (diária × ciclo = retorno)
@@ -368,20 +369,29 @@ async function carregarInvestimentos() {
     const itens = await lerCada('investimentos', keys);
     const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || ''));
     if (!lista.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">Você ainda não tem investimentos.</td></tr>';
+      tbody.innerHTML = '<p class="empty-state">Você ainda não tem investimentos. Escolha um plano abaixo para começar.</p>';
       return;
     }
     tbody.innerHTML = lista.map(inv => {
       const dias = Number(inv.dias_pagos || 0);
-      const total = Number(inv.duracao_dias || 0);
-      return `<tr>
-        <td data-label="Plano"><strong>${inv.plano_nome || '-'}</strong></td>
-        <td data-label="Aplicado">${fmtBRL(inv.valor_aplicado)}</td>
-        <td data-label="Diária">${fmtBRL(inv.rendimento_diario)}</td>
-        <td data-label="Progresso">${dias}/${total} dias</td>
-        <td data-label="Recebido">${fmtBRL(inv.rendimento_pago)}</td>
-        <td data-label="Status"><span class="badge ${inv.status === 'ativo' ? 'completed' : ''}">${inv.status === 'ativo' ? 'Ativo' : 'Concluído'}</span></td>
-      </tr>`;
+      const total = Number(inv.duracao_dias || 0) || 1;
+      const pct = Math.min(100, Math.round((dias / total) * 100));
+      const ativo = inv.status === 'ativo';
+      return `<article class="invest-card">
+        <div class="invest-head">
+          <div class="invest-plan"><span class="invest-dot"></span><strong>${inv.plano_nome || 'Investimento'}</strong></div>
+          <span class="invest-status ${ativo ? 'on' : ''}">${ativo ? 'Ativo' : 'Concluído'}</span>
+        </div>
+        <div class="invest-values">
+          <div><span>Aplicado</span><strong>${fmtBRL(inv.valor_aplicado)}</strong></div>
+          <div><span>Diária</span><strong class="up">+ ${fmtBRL(inv.rendimento_diario)}</strong></div>
+          <div><span>Recebido</span><strong>${fmtBRL(inv.rendimento_pago)}</strong></div>
+        </div>
+        <div class="invest-progress">
+          <div class="invest-progress-top"><span>Progresso</span><span>${dias} de ${total} dias</span></div>
+          <div class="invest-bar"><i style="width:${pct}%"></i></div>
+        </div>
+      </article>`;
     }).join('');
   } catch (e) { console.error('[Investimentos]', e); }
 }
@@ -843,10 +853,38 @@ async function alternarBloqueioSaques() {
 }
 
 // ------------------------------------------------------------
-// EXPERIÊNCIAS DE DEMONSTRAÇÃO (bônus/roleta sem crédito real)
+// ADMIN — CÓDIGOS DA ROLETA
+// ------------------------------------------------------------
+function listaCodigosRoleta() {
+  const bruto = CONFIG.codigo_roleta || 'ROLETA';
+  const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\n,]+/);
+  return arr.map(x => String(x).trim().toUpperCase()).filter(Boolean);
+}
+async function carregarCodigosRoleta() {
+  if (!db) return;
+  try {
+    const s = await db.child('config/codigo_roleta').once('value');
+    if (s.exists()) CONFIG.codigo_roleta = s.val();
+    const campo = el('adminCodigosRoleta');
+    if (campo) campo.value = listaCodigosRoleta().join('\n');
+  } catch (e) { console.warn('[Roleta]', e); }
+}
+async function salvarCodigosRoleta() {
+  const campo = el('adminCodigosRoleta');
+  if (!campo || !db) return;
+  const lista = campo.value.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+  if (!lista.length) return setMensagem('adminRoletaMsg', 'Digite pelo menos um código.', 'error');
+  await db.child('config/codigo_roleta').set(lista);
+  CONFIG.codigo_roleta = lista;
+  setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
+}
+
+// ------------------------------------------------------------
+// BÔNUS E RODADA
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
+  carregarCodigosRoleta();
 
   if (location.pathname.includes('cliente.html')) iniciarDashboard();
 
@@ -867,8 +905,9 @@ document.addEventListener('DOMContentLoaded', () => {
     wheelForm.addEventListener('submit', (e) => {
       e.preventDefault();
       if (spinning) return;
-      if (el('wheelCode').value.trim().toUpperCase() !== 'ROLETA')
-        return setMensagem('wheelResult', 'Código inválido. Para testar, digite ROLETA.', 'error');
+      const digitado = el('wheelCode').value.trim().toUpperCase();
+      if (!listaCodigosRoleta().includes(digitado))
+        return setMensagem('wheelResult', 'Código inválido.', 'error');
       spinning = true;
       const btn = el('spinButton'), wheel = el('luckWheel');
       btn.disabled = true; el('wheelCode').disabled = true; btn.textContent = 'Girando…';
@@ -880,7 +919,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const delay = matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 3700;
       setTimeout(() => {
         const premios = ['2,00', '5,00', '10,00', '2,00', '5,00', '10,00'];
-        setMensagem('wheelResult', `Resultado: R$ ${premios[seg]} de demonstração! Nenhum valor foi adicionado.`, 'success');
+        setMensagem('wheelResult', `Resultado: R$ ${premios[seg]}!`, 'success');
         spinning = false; btn.disabled = false; el('wheelCode').disabled = false; btn.textContent = 'Girar novamente';
       }, delay);
     });

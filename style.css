@@ -246,3 +246,80 @@ select option{background:#02142e;color:#fff}
   td[colspan]{display:block;text-align:center}
   td[colspan]::before{content:none}
 }
+
+/* ============================================================
+   INDIQUE E GANHE — card novo
+   ============================================================ */
+.invite-box{
+  border:1px solid rgba(0,217,245,.35);
+  border-radius:16px;
+  padding:18px;
+  background:linear-gradient(125deg,rgba(5,48,110,.92),rgba(2,20,48,.96));
+  box-shadow:inset 0 0 30px rgba(0,120,255,.12),0 8px 24px rgba(0,0,0,.25);
+  min-width:0;
+}
+.invite-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.invite-ico{
+  flex:none;width:44px;height:44px;border-radius:50%;
+  display:grid;place-items:center;font-size:21px;color:#3a2600;
+  background:linear-gradient(135deg,#f6d985,#e8a93c);
+  box-shadow:0 0 18px rgba(246,217,133,.35);
+}
+.invite-txt{flex:1 1 170px;min-width:0}
+.invite-txt h2{font-size:17px;font-weight:800;line-height:1.2;word-break:break-word}
+.invite-txt p{font-size:12px;color:var(--muted);line-height:1.4;margin-top:3px;word-break:break-word}
+.invite-txt p strong{color:var(--gold)}
+.invite-badge{
+  flex:none;padding:6px 11px;border-radius:999px;
+  background:rgba(246,217,133,.14);border:1px solid rgba(246,217,133,.45);
+  color:var(--gold);font-size:12px;font-weight:800;
+}
+.invite-bottom{display:flex;gap:9px;align-items:flex-end;flex-wrap:wrap;margin-top:14px}
+.invite-field{flex:1 1 220px;min-width:0}
+.invite-field>span{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:5px}
+.invite-field input{
+  width:100%;padding:11px 12px;border-radius:10px;
+  border:1px solid var(--line);background:rgba(1,12,32,.78);
+  color:var(--cyan);font-size:12px;font-weight:700;outline:0;
+}
+.invite-field input:focus{border-color:var(--cyan)}
+.invite-copy{
+  flex:none;min-height:42px;padding:0 16px;border-radius:10px;border:0;
+  background:linear-gradient(135deg,#00a6d8,#0067ff);color:#fff;
+  font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.4px;
+  white-space:nowrap;
+}
+.invite-copy:hover{filter:brightness(1.12)}
+.invite-code{margin-top:10px;font-size:11px;color:var(--muted)}
+.invite-code strong{color:var(--cyan);font-size:13px;letter-spacing:1px;word-break:break-all}
+
+/* ============================================================
+   MEUS INVESTIMENTOS — cards com progresso
+   ============================================================ */
+.invest-list{display:grid;gap:12px;min-width:0}
+.invest-card{
+  border:1px solid rgba(0,217,245,.28);border-radius:14px;padding:14px;
+  background:linear-gradient(150deg,rgba(5,40,96,.75),rgba(2,17,42,.92));
+  min-width:0;
+}
+.invest-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.invest-plan{display:flex;align-items:center;gap:8px;min-width:0}
+.invest-plan strong{font-size:14px;word-break:break-word}
+.invest-dot{width:9px;height:9px;flex:none;border-radius:50%;background:var(--cyan);box-shadow:0 0 9px var(--cyan)}
+.invest-status{padding:4px 10px;border-radius:999px;font-size:10px;font-weight:800;text-transform:uppercase;background:rgba(255,255,255,.08);color:var(--muted)}
+.invest-status.on{background:rgba(78,230,176,.14);color:var(--green)}
+.invest-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.invest-values>div{min-width:0;background:rgba(1,12,32,.55);border:1px solid var(--line);border-radius:10px;padding:9px;text-align:center}
+.invest-values span{display:block;font-size:9px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)}
+.invest-values strong{display:block;margin-top:4px;font-size:clamp(12px,2.6vw,15px);word-break:break-word}
+.invest-values strong.up{color:var(--green)}
+.invest-progress{margin-top:12px}
+.invest-progress-top{display:flex;justify-content:space-between;gap:8px;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.invest-bar{height:7px;border-radius:99px;background:rgba(1,12,32,.8);overflow:hidden;margin-top:6px;border:1px solid var(--line)}
+.invest-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--cyan),var(--blue));box-shadow:0 0 10px rgba(0,217,245,.5)}
+@media(max-width:380px){
+  .invite-copy{width:100%}
+  .invest-values{grid-template-columns:1fr}
+  .invest-values>div{display:flex;justify-content:space-between;align-items:center;text-align:left}
+  .invest-values strong{margin-top:0}
+}

@@ -41,22 +41,28 @@
         <button onclick="mostrarExtrato()"><span aria-hidden="true">▤</span>Extrato <b>→</b></button>
       </div>
 
-      <section class="panel invite-card" id="indicacaoBox">
-        <div class="section-heading"><h2>Indique e ganhe</h2><span class="pill">R$ 2,00 por amigo</span></div>
-        <p class="muted" style="font-size:13px;margin-bottom:10px;">Compartilhe seu link e ganhe a cada amigo que investir.</p>
-        <div class="invite-row">
-          <input id="linkIndicacao" readonly aria-label="Seu link de indicação" onclick="this.select();">
-          <button class="btn small" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar</button>
+      <section class="invite-box" id="indicacaoBox">
+        <div class="invite-top">
+          <div class="invite-ico" aria-hidden="true">★</div>
+          <div class="invite-txt">
+            <h2>Indique e ganhe</h2>
+            <p>Ganhe <strong>R$ 2,00</strong> por amigo que fizer um investimento.</p>
+          </div>
+          <span class="invite-badge">R$ 2,00</span>
         </div>
-        <p class="hint" style="margin-top:8px;">Seu código: <strong id="codigoIndicacao" class="cyan">----</strong></p>
+        <div class="invite-bottom">
+          <div class="invite-field">
+            <span>Seu link de indicação</span>
+            <input id="linkIndicacao" readonly aria-label="Seu link de indicação" onclick="this.select();">
+          </div>
+          <button class="invite-copy" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar link</button>
+        </div>
+        <div class="invite-code">Código: <strong id="codigoIndicacao">----</strong></div>
       </section>
 
       <section class="panel" id="investimentosBox">
         <div class="section-heading"><h2>Meus investimentos</h2><span>Acompanhe suas diárias</span></div>
-        <div style="overflow-x:auto;">
-          <table class="admin-table"><thead><tr><th>Plano</th><th>Aplicado</th><th>Diária</th><th>Progresso</th><th>Recebido</th><th>Status</th></tr></thead>
-          <tbody id="investimentosBody"><tr><td colspan="6" style="text-align:center;">Carregando...</td></tr></tbody></table>
-        </div>
+        <div class="invest-list" id="investimentosBody"><p class="empty-state">Carregando...</p></div>
       </section>
 
       <section class="rewards-grid" aria-label="Bônus e sorte">
@@ -76,7 +82,7 @@
         <article class="panel reward-card" id="roleta">
           <span class="reward-tag">ROLETA DA SORTE</span>
           <h2>Seu próximo giro começa aqui</h2>
-          <p>Insira o código e gire para revelar um prêmio de demonstração.</p>
+          <p>Insira o código e gire para revelar seu prêmio.</p>
           <div class="wheel-frame">
             <div class="wheel-pointer" aria-hidden="true"></div>
             <div class="luck-wheel" id="luckWheel" aria-hidden="true">
@@ -88,7 +94,7 @@
           <form id="wheelForm">
             <label for="wheelCode">Código para girar</label>
             <div class="input-wrap"><input id="wheelCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="wheelHint wheelResult"></div>
-            <p class="reward-hint" id="wheelHint">Demonstração: use <strong>ROLETA</strong>. Prêmios simulados.</p>
+            <p class="reward-hint" id="wheelHint">Digite o código fornecido pela administração para girar.</p>
             <button id="spinButton" class="primary" type="submit">Girar roleta</button>
           </form>
           <p class="reward-result" id="wheelResult" role="status" aria-live="polite"></p>

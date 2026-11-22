@@ -39,6 +39,17 @@
         <div class="input-wrap" style="max-width:420px;"><input id="adminMotivoBloqueio" placeholder="Motivo do bloqueio (opcional)" maxlength="120"></div>
         <button class="secondary" style="max-width:420px;" onclick="alternarBloqueioSaques()">Bloquear / liberar saques</button>
 
+        <div class="section-heading" style="margin-top:24px;"><h2>Códigos da roleta</h2><span>Um código por linha</span></div>
+        <p style="color:var(--muted);font-size:13px;">Cadastre os códigos que liberam o giro. O jogador pode usar qualquer um da lista.</p>
+        <div class="input-wrap" style="max-width:420px;align-items:stretch;">
+          <textarea id="adminCodigosRoleta" rows="4" placeholder="ROLETA\nPROMO2026" style="flex:1;border:0;outline:0;background:transparent;color:#fff;font:inherit;padding:12px;resize:vertical;"></textarea>
+        </div>
+        <div class="row" style="margin-top:8px;">
+          <button class="primary" style="max-width:220px;" onclick="salvarCodigosRoleta()">Salvar códigos</button>
+          <button class="secondary" style="max-width:220px;" onclick="carregarCodigosRoleta()">Recarregar</button>
+        </div>
+        <p class="reward-result" id="adminRoletaMsg" role="status" aria-live="polite"></p>
+
         <div class="section-heading" style="margin-top:24px;"><h2>Rendimentos por investimento</h2></div>
         <div style="overflow-x:auto;">
           <table class="admin-table"><thead><tr><th>Cliente</th><th>Plano</th><th>Diária</th><th>Progresso</th><th>Recebido</th></tr></thead>
