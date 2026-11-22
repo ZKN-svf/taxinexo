@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taxinexo | Painel</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard">
+  <header class="topbar">
+    <a href="cliente.html"><img src="brand-transparent.png" alt="Taxinexo Investimento"></a>
+    <div class="account">
+      <span class="user-icon" aria-hidden="true">♙</span>
+      <p>Olá, <strong id="nomeUsuario">Usuário</strong><small id="userEmail">Cliente Taxinexo</small></p>
+      <button class="sair-btn" onclick="sair()" title="Sair">Sair</button>
+    </div>
+  </header>
+
+  <div class="dashboard-layout">
+    <main class="dashboard-main">
+      <section class="dashboard-hero" aria-label="Seu futuro começa agora. Invista com segurança e faça seu dinheiro render.">
+        <img src="dashboard-banner.webp" alt="Seu futuro começa agora. Invista com segurança e faça seu dinheiro render.">
+      </section>
+
+      <section class="balance panel">
+        <div class="balance-main">
+          <div><p>Saldo Disponível</p><h1>R$ <span id="saldo">0,00</span></h1></div>
+          <div class="saldo-indicacao"><p>Saldo de indicação</p><strong id="saldoIndicacao">R$ 0,00</strong></div>
+        </div>
+        <div class="balance-details">
+          <div>Total Investido<strong id="totalInvestido">R$ 0,00</strong></div>
+          <div>Rendimentos<strong id="totalRendimentos">R$ 0,00</strong></div>
+          <div>Total Geral<strong id="totalGeral">R$ 0,00</strong></div>
+        </div>
+      </section>
+
+      <div class="quick-actions">
+        <button onclick="mostrarDeposito()"><span aria-hidden="true">⇩</span>Depositar <b>→</b></button>
+        <button onclick="mostrarSaque()"><span aria-hidden="true">⇧</span>Sacar <b>→</b></button>
+        <a href="#planos"><span aria-hidden="true">↗</span>Meus Planos <b>→</b></a>
+        <button onclick="mostrarExtrato()"><span aria-hidden="true">▤</span>Extrato <b>→</b></button>
+      </div>
+
+      <section class="panel" id="indicacaoBox">
+        <div class="section-heading"><h2>Indique e ganhe</h2><span>R$ 2,00 por amigo</span></div>
+        <p style="color:var(--muted);font-size:13px;">Seu código: <strong id="codigoIndicacao" style="color:var(--cyan);">----</strong></p>
+      </section>
+
+      <section class="panel" id="investimentosBox">
+        <div class="section-heading"><h2>Meus investimentos</h2><span>Acompanhe suas diárias</span></div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table"><thead><tr><th>Plano</th><th>Aplicado</th><th>Diária</th><th>Progresso</th><th>Recebido</th><th>Status</th></tr></thead>
+          <tbody id="investimentosBody"><tr><td colspan="6" style="text-align:center;">Carregando...</td></tr></tbody></table>
+        </div>
+      </section>
+
+      <section class="rewards-grid" aria-label="Bônus e sorte">
+        <article class="panel reward-card" id="bonus">
+          <span class="reward-tag">BÔNUS TAXINEXO</span>
+          <h2>Resgatar bônus</h2>
+          <p>Digite seu código para descobrir seu bônus.</p>
+          <form id="bonusForm">
+            <label for="bonusCode">Código do bônus</label>
+            <div class="input-wrap"><input id="bonusCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="bonusHint bonusResult"></div>
+            <p class="reward-hint" id="bonusHint">Demonstração: experimente o código <strong>TAXINEXO</strong>.</p>
+            <button class="primary" type="submit">Resgatar bônus</button>
+          </form>
+          <p class="reward-result" id="bonusResult" role="status" aria-live="polite"></p>
+        </article>
+
+        <article class="panel reward-card" id="roleta">
+          <span class="reward-tag">ROLETA DA SORTE</span>
+          <h2>Seu próximo giro começa aqui</h2>
+          <p>Insira o código e gire para revelar um prêmio de demonstração.</p>
+          <div class="wheel-frame">
+            <div class="wheel-pointer" aria-hidden="true"></div>
+            <div class="luck-wheel" id="luckWheel" aria-hidden="true">
+              <span style="--angle:30deg">R$ 2</span><span style="--angle:90deg">R$ 5</span><span style="--angle:150deg">R$ 10</span>
+              <span style="--angle:210deg">R$ 2</span><span style="--angle:270deg">R$ 5</span><span style="--angle:330deg">R$ 10</span>
+            </div>
+            <div class="wheel-hub" aria-hidden="true">T</div>
+          </div>
+          <form id="wheelForm">
+            <label for="wheelCode">Código para girar</label>
+            <div class="input-wrap"><input id="wheelCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="wheelHint wheelResult"></div>
+            <p class="reward-hint" id="wheelHint">Demonstração: use <strong>ROLETA</strong>. Prêmios simulados.</p>
+            <button id="spinButton" class="primary" type="submit">Girar roleta</button>
+          </form>
+          <p class="reward-result" id="wheelResult" role="status" aria-live="polite"></p>
+        </article>
+      </section>
+
+      <section class="panel plans-section" id="planos">
+        <div class="section-heading"><h2>Escolha um Plano</h2><span>Conheça as opções</span></div>
+        <div class="planos-grid" id="listaPlanos"></div>
+      </section>
+
+      <section class="panel movements">
+        <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato →</button></div>
+        <div id="extratoResumo"><p class="empty-state">Carregando...</p></div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="dashboard-footer">TAXINEXO INVESTIMENTOS<small>JUNTOS NO SEU CRESCIMENTO</small></footer>
+
+  <!-- Depósito -->
+  <dialog class="panel money-dialog" id="depositoDialog" aria-labelledby="depositoTitulo">
+    <form id="depositoForm" novalidate>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
+      <h2 id="depositoTitulo"><span aria-hidden="true">⇩</span> Depositar</h2>
+      <div id="pixEtapa1">
+        <label for="depositoValor">Valor do depósito</label>
+        <div class="input-wrap"><span aria-hidden="true">R$</span><input id="depositoValor" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-describedby="depositoMin depositoMsg"></div>
+        <p class="min-notice" id="depositoMin">Depósito mínimo: <strong>R$ 20,00</strong> · máximo R$ 500,00</p>
+        <p class="dialog-label" id="valoresLabel">Valores rápidos</p>
+        <div class="amount-options" role="group" aria-labelledby="valoresLabel">
+          <button type="button" data-valor="20">R$ 20</button><button type="button" data-valor="30">R$ 30</button>
+          <button type="button" data-valor="50">R$ 50</button><button type="button" data-valor="100">R$ 100</button>
+          <button type="button" data-valor="200">R$ 200</button><button type="button" data-valor="500">R$ 500</button>
+        </div>
+        <p class="reward-result" id="depositoMsg" role="status" aria-live="polite"></p>
+        <button class="primary" type="submit" id="btnGerarPix">Gerar PIX <span aria-hidden="true">→</span></button>
+      </div>
+      <div id="pixEtapa2" style="display:none;text-align:center;">
+        <h3 style="font-size:18px;">Pague com PIX</h3>
+        <p style="color:var(--muted);font-size:13px;">Valor: <strong id="pixValor" style="color:var(--cyan);"></strong></p>
+        <div id="pixQrCode" style="display:flex;justify-content:center;margin:18px 0;"></div>
+        <input id="pixCopiaCola" readonly style="width:100%;font-size:11px;padding:10px;border-radius:8px;border:1px solid var(--line);background:#02142e;color:#fff;">
+        <button type="button" class="secondary" style="margin-top:10px;" onclick="copiarPix()">Copiar código</button>
+        <p class="reward-result" id="pixStatus" role="status" aria-live="polite"></p>
+        <p style="color:var(--muted);font-size:12px;">A confirmação é automática. Aguarde sem fechar esta janela.</p>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Saque -->
+  <dialog class="panel money-dialog" id="saqueDialog" aria-labelledby="saqueTitulo">
+    <form id="saqueForm" novalidate>
+      <span class="fee-badge">TAXA DE 10%</span>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
+      <h2 id="saqueTitulo"><span aria-hidden="true">⇧</span> Sacar</h2>
+      <label for="saquePix">Chave Pix</label>
+      <div class="input-wrap"><input id="saquePix" placeholder="CPF, e-mail, telefone ou chave aleatória" maxlength="80" autocomplete="off" spellcheck="false"></div>
+      <label for="saqueValor">Valor do saque</label>
+      <div class="input-wrap"><span aria-hidden="true">R$</span><input id="saqueValor" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-describedby="saqueMin saqueResumo saqueMsg"></div>
+      <p class="min-notice" id="saqueMin">Saque mínimo: <strong>R$ 20,00</strong> · das 11h às 18h · máx. 2 saques/dia</p>
+      <dl class="fee-summary" id="saqueResumo">
+        <div><dt>Taxa de saque (10%)</dt><dd id="saqueTaxa">- R$ 0,00</dd></div>
+        <div><dt>Você recebe</dt><dd id="saqueLiquido">R$ 0,00</dd></div>
+      </dl>
+      <p class="reward-result" id="saqueMsg" role="status" aria-live="polite"></p>
+      <button class="primary" type="submit">Sacar</button>
+    </form>
+  </dialog>
+
+  <!-- Investir -->
+  <dialog class="panel money-dialog" id="investirDialog" aria-labelledby="investirTitulo">
+    <form onsubmit="event.preventDefault(); confirmarInvestimento()" novalidate>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
+      <h2 id="investirTitulo"><span aria-hidden="true">↗</span> Investir</h2>
+      <label for="investirPlano">Escolha o plano</label>
+      <div class="input-wrap">
+        <select id="investirPlano" style="width:100%;padding:12px;border-radius:10px;background:#02142e;color:#fff;border:1px solid var(--line);"></select>
+      </div>
+      <p class="reward-hint" id="investirInfo"></p>
+      <p class="reward-result" id="investirMsg" role="status" aria-live="polite"></p>
+      <button class="primary" type="submit">Confirmar investimento</button>
+    </form>
+  </dialog>
+
+  <!-- Extrato -->
+  <dialog class="panel money-dialog" id="extratoDialog" aria-labelledby="extratoTitulo">
+    <form method="dialog">
+      <button class="dialog-close" type="submit" aria-label="Fechar">×</button>
+      <h2 id="extratoTitulo"><span aria-hidden="true">▤</span> Extrato</h2>
+      <div id="extratoLista"><p class="empty-state">Carregando...</p></div>
+      <button class="primary" type="submit">Fechar</button>
+    </form>
+  </dialog>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="pagamentos.js"></script>
+  <script src="script.js"></script>
+  <script>
+    // Preenche o select de planos e o resumo do extrato após a carga
+    window.addEventListener('load', () => {
+      const sel = document.getElementById('investirPlano');
+      if (sel) sel.innerHTML = planos.map(p => `<option value="${p.id}">${p.nome} — ${fmtBRL(p.entrada)}</option>`).join('');
+      const resumo = document.getElementById('extratoResumo');
+      if (resumo && document.getElementById('extratoLista')) {
+        const sincronizar = setInterval(() => {
+          const html = document.getElementById('extratoLista').innerHTML;
+          if (html && !html.includes('Carregando')) { resumo.innerHTML = html; clearInterval(sincronizar); }
+        }, 300);
+        setTimeout(() => clearInterval(sincronizar), 5000);
+      }
+    });
+  </script>
+
+<!-- Grupo WhatsApp -->
+<a class="grp-whats" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
+  <span aria-hidden="true">💬</span> Grupo
+</a>
+</body>
+</html>

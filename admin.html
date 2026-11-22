@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taxinexo | Admin</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="dashboard">
+  <header class="topbar">
+    <a href="cliente.html"><img src="brand-transparent.png" alt="Taxinexo Investimento"></a>
+    <div class="account"><span class="user-icon" aria-hidden="true">♙</span><p><strong>Administração</strong><small>Taxinexo</small></p></div>
+  </header>
+
+  <div class="dashboard-layout" style="max-width:1180px;margin:auto;padding:20px;">
+    <main class="dashboard-main">
+      <section class="panel" id="adminLogin">
+        <div class="section-heading"><h2>Acesso administrativo</h2></div>
+        <div class="input-wrap" style="max-width:320px;"><input id="adminSenha" type="password" placeholder="Senha de administrador" autocomplete="current-password"></div>
+        <button class="primary" style="max-width:320px;" onclick="entrarAdmin()">Entrar</button>
+        <p class="reward-result" id="adminMsg" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" id="adminPanel" style="display:none;">
+        <div class="section-heading"><h2>Visão geral</h2><button onclick="carregarAdmin()">Atualizar</button></div>
+        <div class="balance-details" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;">
+          <div>Usuários<strong id="adminUsuarios">0</strong></div>
+          <div>Investimentos ativos<strong id="adminInvestimentos">0</strong></div>
+          <div>Total investido<strong id="adminTotalInvestido">R$ 0,00</strong></div>
+          <div>Rendimentos pagos<strong id="adminTotalRendimentos">R$ 0,00</strong></div>
+          <div>Saques<strong id="adminTotalSaques">R$ 0,00</strong></div>
+        </div>
+
+        <div class="section-heading" style="margin-top:24px;"><h2>Processar rendimentos</h2><span>Diária manual</span></div>
+        <p style="color:var(--muted);font-size:13px;">Creditamos 1 diária de cada investimento ativo no saldo do cliente. Ao completar o ciclo, o capital é devolvido e o investimento é finalizado.</p>
+        <button class="primary" style="max-width:320px;" onclick="processarRendimentos()">Processar rendimentos de hoje</button>
+
+        <div class="section-heading" style="margin-top:24px;"><h2>Controle de saques</h2></div>
+        <div class="input-wrap" style="max-width:420px;"><input id="adminMotivoBloqueio" placeholder="Motivo do bloqueio (opcional)" maxlength="120"></div>
+        <button class="secondary" style="max-width:420px;" onclick="alternarBloqueioSaques()">Bloquear / liberar saques</button>
+
+        <div class="section-heading" style="margin-top:24px;"><h2>Rendimentos por investimento</h2></div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table"><thead><tr><th>Cliente</th><th>Plano</th><th>Diária</th><th>Progresso</th><th>Recebido</th></tr></thead>
+          <tbody id="adminRendimentosBody"><tr><td colspan="5" style="text-align:center;">Carregando...</td></tr></tbody></table>
+        </div>
+
+        <div class="section-heading" style="margin-top:24px;"><h2>Últimos saques</h2></div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table"><thead><tr><th>Cliente</th><th>Bruto</th><th>Líquido</th><th>Data</th><th>Status</th></tr></thead>
+          <tbody id="adminSaquesBody"><tr><td colspan="5" style="text-align:center;">Carregando...</td></tr></tbody></table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="pagamentos.js"></script>
+  <script src="script.js"></script>
+  <script>
+    const painel = document.getElementById('adminPanel');
+    const login = document.getElementById('adminLogin');
+    function mostrarPainel() {
+      if (sessionStorage.getItem('admin_taxinexo') === 'sim') {
+        login.style.display = 'none';
+        painel.style.display = 'block';
+      }
+    }
+    const origem = window.carregarAdmin;
+    window.carregarAdmin = async function () {
+      mostrarPainel();
+      return origem ? origem() : null;
+    };
+    window.addEventListener('load', mostrarPainel);
+  </script>
+
+<!-- Grupo WhatsApp -->
+<a class="grp-whats" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
+  <span aria-hidden="true">💬</span> Grupo
+</a>
+</body>
+</html>
