@@ -27,6 +27,7 @@ async function criarCobrancaPIX(valor, descricao, emailPagador, idUsuario) {
         amount: parseFloat(parseFloat(valor).toFixed(2)),
         identifier,
         callbackUrl: WEBHOOK_URL,
+        idUsuario: idUsuario || '',
         nome: (() => { try { return JSON.parse(localStorage.getItem('usuario_taxinexo') || '{}').nome || ''; } catch (_) { return ''; } })(),
         cpf: (() => { try { return JSON.parse(localStorage.getItem('usuario_taxinexo') || '{}').cpf || ''; } catch (_) { return ''; } })()
       })

@@ -714,13 +714,17 @@ async function gerarPix() {
     if (el('pixValor')) el('pixValor').textContent = fmtBRL(valor);
 
     if (db) {
-      const txDep = await db.child('transacoes').push({
-        usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-        tipo: 'deposito', valor, status: 'pendente',
-        identifier: r.identifier, criado_em: new Date().toISOString()
-      });
-      await db.child('transacoes_usuario/' + u.id + '/' + txDep.key).set(true);
-      await db.child('identifier_index/' + r.identifier).set(txDep.key);
+      // O Worker já registra o depósito; só cria aqui se ele não registrou.
+      const ja = await db.child('identifier_index/' + r.identifier).once('value');
+      if (!ja.exists()) {
+        const txDep = await db.child('transacoes').push({
+          usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
+          tipo: 'deposito', valor, status: 'pendente',
+          identifier: r.identifier, criado_em: new Date().toISOString()
+        });
+        await db.child('transacoes_usuario/' + u.id + '/' + txDep.key).set(true);
+        await db.child('identifier_index/' + r.identifier).set(txDep.key);
+      }
     }
     setMensagem('depositoMsg', 'PIX gerado! Escaneie ou copie o código.', 'success');
     iniciarVerificacao(r.identifier, valor, u);
