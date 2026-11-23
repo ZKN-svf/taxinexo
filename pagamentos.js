@@ -1,14 +1,14 @@
 // ============================================================
-// TAXINEXO — SigiloPay via Cloudflare Worker (contrato igual ao InvestMax)
+// TAXINEXO — NexasPay via Worker próprio (relay compartilhado com a ZKNbet,
+// mas nenhum arquivo da ZKNbet é alterado — é só o mesmo proxy de IP fixo).
 // ============================================================
 
 const SIGILOPAY_CONFIG = {
-  baseURL: 'https://investmax-proxy.gabrielrobin63.workers.dev/api'
+  baseURL: 'https://taxinexo-webhook.gabrielrobin63.workers.dev'
 };
 
-// Webhook exclusivo do Taxinexo — credita o saldo no Firebase.
-// O proxy do InvestMax apenas loga o webhook (não credita) e bloqueia polling (429).
-const WEBHOOK_URL = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/';
+// Webhook Nexas — o Worker confirma o status na API antes de creditar.
+const WEBHOOK_URL = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/webhook/nexaspay';
 
 function gerarIdentifier() {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
@@ -26,7 +26,9 @@ async function criarCobrancaPIX(valor, descricao, emailPagador, idUsuario) {
       body: JSON.stringify({
         amount: parseFloat(parseFloat(valor).toFixed(2)),
         identifier,
-        callbackUrl: WEBHOOK_URL
+        callbackUrl: WEBHOOK_URL,
+        nome: (() => { try { return JSON.parse(localStorage.getItem('usuario_taxinexo') || '{}').nome || ''; } catch (_) { return ''; } })(),
+        cpf: (() => { try { return JSON.parse(localStorage.getItem('usuario_taxinexo') || '{}').cpf || ''; } catch (_) { return ''; } })()
       })
     });
     const data = await response.json();
