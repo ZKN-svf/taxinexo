@@ -1075,6 +1075,59 @@ async function adminExcluirUsuario(id, nome) {
   carregarAdmin();
 }
 
+const ADMIN_TOKEN = 'taxadmin2026';
+async function adminCarregarBanners() {
+  const tbody = el('adminBannersBody'); if (!tbody) return;
+  try {
+    const r = await fetch(TAX_API + '/admin/marketing/list', { headers: { Authorization: 'Bearer ' + ADMIN_TOKEN } });
+    const j = await r.json();
+    const lista = j.banners || [];
+    tbody.innerHTML = lista.length ? lista.map(b => `<tr>
+      <td><img src="${escTexto(b.image_url)}" style="max-width:120px;max-height:60px;border-radius:6px;"></td>
+      <td><span class="badge-ok">${escTexto(b.type)}</span></td>
+      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${b.link ? escTexto(b.link) : '—'}</td>
+      <td>
+        <button class="mini-btn" onclick="adminEditarBannerLink('${escTexto(b.id)}')">Editar link</button>
+        <button class="mini-btn danger" onclick="adminExcluirBanner('${escTexto(b.id)}')">Excluir</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="4" class="empty">Nenhum banner cadastrado.</td></tr>';
+  } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Erro ao carregar.</td></tr>'; }
+}
+async function adminEnviarBanner() {
+  const arquivo = el('bannerArquivo')?.files?.[0];
+  if (!arquivo) return setMensagem('adminBannerMsg', 'Selecione uma imagem.', 'error');
+  const form = new FormData();
+  form.append('image', arquivo);
+  form.append('link', el('bannerLink')?.value || '');
+  form.append('type', el('bannerTipo')?.value || 'carousel');
+  setMensagem('adminBannerMsg', 'Enviando...', 'loading');
+  try {
+    const r = await fetch(TAX_API + '/admin/marketing/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + ADMIN_TOKEN }, body: form });
+    const j = await r.json();
+    if (!j.ok) return setMensagem('adminBannerMsg', j.message || 'Erro ao enviar.', 'error');
+    setMensagem('adminBannerMsg', 'Banner enviado com sucesso!', 'success');
+    if (el('bannerArquivo')) el('bannerArquivo').value = '';
+    if (el('bannerLink')) el('bannerLink').value = '';
+    adminCarregarBanners();
+  } catch (e) { setMensagem('adminBannerMsg', 'Erro: ' + e.message, 'error'); }
+}
+async function adminEditarBannerLink(id) {
+  const atual = String(prompt('Novo link (deixe vazio para remover):') ?? '');
+  try {
+    await fetch(TAX_API + '/admin/marketing/' + encodeURIComponent(id), {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + ADMIN_TOKEN },
+      body: JSON.stringify({ link: atual }),
+    });
+    adminCarregarBanners();
+  } catch (e) { toast('Erro: ' + e.message); }
+}
+async function adminExcluirBanner(id) {
+  if (!confirm('Excluir este banner?')) return;
+  try {
+    await fetch(TAX_API + '/admin/marketing/delete/' + encodeURIComponent(id), { method: 'DELETE', headers: { Authorization: 'Bearer ' + ADMIN_TOKEN } });
+    adminCarregarBanners();
+  } catch (e) { toast('Erro: ' + e.message); }
+}
 async function adminCarregarGateway() {
   if (!db) return;
   try {
@@ -1349,6 +1402,7 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarLinkGrupo();
   if (location.pathname.includes('admin.html')) {
     adminCarregarGateway();
+    adminCarregarBanners();
   }
 
   if (location.pathname.includes('cliente.html')) iniciarDashboard();

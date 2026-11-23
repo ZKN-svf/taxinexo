@@ -203,6 +203,37 @@
         </article>
       </section>
 
+      <!-- BANNERS / MARKETING -->
+      <section class="admin-section">
+        <div class="admin-sec-head"><h2>Banners do site</h2><small>Carrossel na home e no painel</small></div>
+        <article class="admin-action">
+          <span class="admin-action-ico">🖼️</span>
+          <div style="flex:1 1 100%">
+            <h3>Adicionar banner</h3>
+            <p>Imagem PNG/JPG/WEBP/GIF até 5 MB. O link é opcional — se preenchido, clicar no banner redireciona.</p>
+            <div class="form-grid">
+              <input id="bannerArquivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="grid-column:1/-1">
+              <input id="bannerLink" placeholder="Link (https://...) — opcional" style="grid-column:1/-1">
+              <select id="bannerTipo" style="grid-column:1/-1">
+                <option value="carousel">Carrossel (home e painel)</option>
+                <option value="popup">Popup</option>
+              </select>
+            </div>
+            <button class="btn" style="margin-top:10px" onclick="adminEnviarBanner()">Enviar banner</button>
+            <p class="result" id="adminBannerMsg" role="status" aria-live="polite"></p>
+          </div>
+        </article>
+        <article class="admin-table-card">
+          <div class="table-head-row"><h3>Banners ativos</h3><button class="btn secondary" onclick="adminCarregarBanners()">Atualizar</button></div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Imagem</th><th>Tipo</th><th>Link</th><th></th></tr></thead>
+              <tbody id="adminBannersBody"><tr><td colspan="4" class="empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
       <!-- GATEWAY -->
       <section class="admin-section">
         <div class="admin-sec-head"><h2>Gateway de pagamento</h2><small>NexasPay — credenciais do relay na VPS</small></div>

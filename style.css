@@ -495,3 +495,14 @@ button.plano-esgotado,
 .mini-btn{padding:5px 9px;border:1px solid rgba(0,141,255,.4);border-radius:7px;background:transparent;color:var(--cyan);font-size:10px;font-weight:700;cursor:pointer}
 .mini-btn.danger{color:#ff7a7a;border-color:rgba(255,122,122,.4)}
 .badge-ok{color:#4dffc3;font-size:10px;font-weight:800}.badge-off{color:#ffc65c;font-size:10px;font-weight:800}
+
+/* ===== CARROSSEL DE BANNERS ===== */
+.tax-carousel{position:relative;width:100%;height:clamp(150px,25vw,280px);margin:0 0 18px;border-radius:18px;overflow:hidden;border:1px solid rgba(0,141,255,.35);background:#04122b;box-shadow:0 10px 30px rgba(0,0,0,.35);touch-action:pan-y}
+.tax-carousel-track{display:flex;width:100%;height:100%;transition:transform .5s ease;cursor:grab}
+.tax-carousel-track:active{cursor:grabbing}
+.tax-carousel-slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tax-carousel-slide img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.tax-carousel-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:2}
+.tax-carousel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.45);cursor:pointer;transition:.2s}
+.tax-carousel-dots button.on{width:22px;border-radius:99px;background:var(--cyan)}
+@media(max-width:620px){.tax-carousel{height:150px;border-radius:12px}}
