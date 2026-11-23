@@ -1000,6 +1000,17 @@ async function carregarAdmin() {
 
 let ADMIN_CACHE = { usuarios: {}, investimentos: {}, saques: [], transacoes: [] };
 
+async function adminAtualizarSaldoGateway() {
+  const elSaldo = el('adminSaldoGateway');
+  if (!elSaldo) return;
+  elSaldo.textContent = '...';
+  try {
+    const s = await SigiloPay.consultarSaldo();
+    elSaldo.textContent = s.sucesso ? fmtBRL(s.available) : '—';
+    toast(s.sucesso ? `Saldo atualizado: ${fmtBRL(s.available)}` : 'Não foi possível consultar o saldo.');
+  } catch (e) { elSaldo.textContent = '—'; toast('Erro: ' + e.message); }
+}
+
 function renderAdminUsuarios() {
   const tbody = el('adminUsuariosBody'); if (!tbody) return;
   const busca = String(el('adminBuscaUsuario')?.value || '').trim().toLowerCase();
@@ -1295,7 +1306,10 @@ async function salvarCodigosRoleta() {
 // Códigos de bônus (1 resgate por código por cliente) — cada um com seu valor
 function listaCodigosBonus() {
   const bruto = CONFIG.codigo_bonus || [];
-  const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\n,]+/);
+  let arr;
+  if (Array.isArray(bruto)) arr = bruto;
+  else if (bruto && typeof bruto === 'object') arr = [bruto]; // objeto único (ex.: {codigo, valor})
+  else arr = String(bruto).split(/[\n,]+/);
   return arr.map(x => {
     const valorPadrao = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
     if (x && typeof x === 'object') {
@@ -1385,9 +1399,9 @@ async function resgatarBonus(codigo, usuario) {
 document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
   carregarCodigosRoleta();
+  carregarCodigosBonus();
   carregarLinkGrupo();
   if (location.pathname.includes('admin.html')) {
-    carregarCodigosBonus();
     adminCarregarGateway();
   }
 

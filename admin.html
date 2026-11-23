@@ -46,7 +46,7 @@
         <article class="admin-stat"><span class="admin-stat-ico">💰</span><small>Total investido</small><strong id="adminTotalInvestido">R$ 0,00</strong></article>
         <article class="admin-stat"><span class="admin-stat-ico">📊</span><small>Rendimentos</small><strong id="adminTotalRendimentos">R$ 0,00</strong></article>
         <article class="admin-stat"><span class="admin-stat-ico">💸</span><small>Saques pagos</small><strong id="adminTotalSaques">R$ 0,00</strong></article>
-        <article class="admin-stat"><span class="admin-stat-ico">🏦</span><small>Saldo gateway</small><strong id="adminSaldoGateway">—</strong></article>
+        <article class="admin-stat"><span class="admin-stat-ico">🏦</span><small>Saldo gateway</small><strong id="adminSaldoGateway">—</strong><button class="mini-btn" style="margin-top:6px" onclick="adminAtualizarSaldoGateway()">Atualizar</button></article>
       </section>
 
       <!-- AÇÕES RÁPIDAS -->
@@ -210,7 +210,7 @@
           <span class="admin-action-ico">🔑</span>
           <div style="flex:1 1 100%">
             <h3>Chaves da gateway</h3>
-            <p>As chaves ficam no Firebase e são usadas pelo Worker. A ZKNbet não é afetada — o relay é o mesmo, mas as credenciais são independentes por projeto.</p>
+
             <div class="form-grid">
               <input id="adminGatewayUrl" placeholder="URL do relay (https://.../relay)" style="grid-column:1/-1">
               <input id="adminGatewayToken" placeholder="Token do relay" style="grid-column:1/-1">
