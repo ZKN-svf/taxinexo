@@ -1,5 +1,5 @@
-/* ============================================================
-   TAXINEXO — SCRIPT PRINCIPAL
+﻿/* ============================================================
+   TAXINEXO â€” SCRIPT PRINCIPAL
    Firebase Realtime DB (/taxinexo) + SigiloPay + Admin + Dashboard
    Funcionamento portado do InvestMax, mantendo o visual Taxinexo.
    ============================================================ */
@@ -29,7 +29,7 @@ if (typeof firebase !== 'undefined') {
 }
 
 // ------------------------------------------------------------
-// CONFIGURAÇÕES
+// CONFIGURAÃ‡Ã•ES
 // ------------------------------------------------------------
 const ADMIN_SENHA = '235689b';
 const CONFIG = {
@@ -46,7 +46,7 @@ const CONFIG = {
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo (diária × ciclo = retorno)
+// Planos do Taxinexo (diÃ¡ria Ã— ciclo = retorno)
 const planos = [
   { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
   { id: 1, nome: 'Plano 15', entrada: 15, diaria: 3, ciclo: 10, retorno: 30 },
@@ -59,14 +59,14 @@ const planos = [
 ];
 
 // ------------------------------------------------------------
-// UTILITÁRIOS
+// UTILITÃRIOS
 // ------------------------------------------------------------
 const fmtBRL = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtData = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
 const hoje = () => new Date().toISOString().split('T')[0];
 const el = (id) => document.getElementById(id);
 
-// Índices manuais: evitam orderByChild (que exige .indexOn nas regras do Firebase).
+// Ãndices manuais: evitam orderByChild (que exige .indexOn nas regras do Firebase).
 const emailKey = (email) => btoa(String(email).toLowerCase()).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 async function buscarUsuarioPorEmail(email) {
   const idx = await db.child('email_index/' + emailKey(email)).once('value');
@@ -169,8 +169,8 @@ function horarioSaquePermitido() {
 function proximoHorarioSaque() {
   const h = new Date().getHours();
   return h < CONFIG.horarioSaqueInicio
-    ? `Hoje às ${CONFIG.horarioSaqueInicio}:00`
-    : `Amanhã às ${CONFIG.horarioSaqueInicio}:00`;
+    ? `Hoje Ã s ${CONFIG.horarioSaqueInicio}:00`
+    : `AmanhÃ£ Ã s ${CONFIG.horarioSaqueInicio}:00`;
 }
 function setMensagem(id, texto, estado) {
   const e = el(id); if (!e) return;
@@ -180,7 +180,7 @@ function setMensagem(id, texto, estado) {
 function toast(msg) { alert(msg); }
 
 // ------------------------------------------------------------
-// AUTENTICAÇÃO
+// AUTENTICAÃ‡ÃƒO
 // ------------------------------------------------------------
 function usuarioLocal() {
   try { return JSON.parse(localStorage.getItem('usuario_taxinexo') || 'null'); }
@@ -202,6 +202,8 @@ function exigirLogin() {
   return u;
 }
 
+const TAX_API = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/api';
+
 async function fazerCadastro() {
   const btn = document.querySelector('#cadastroForm button[type="submit"]');
   const original = btn ? btn.innerHTML : '';
@@ -218,75 +220,40 @@ async function fazerCadastro() {
     const termos = el('termos');
 
     if (nome.split(' ').length < 2) return toast('Digite seu nome completo.');
-    if (!validarCPF(cpf)) return toast('CPF inválido!');
-    if (celular.replace(/\D/g, '').length < 10) return toast('Celular inválido!');
-    if (!validarEmail(email)) return toast('E-mail inválido!');
-    if (pix.length < 3) return toast('Chave Pix inválida!');
-    if (senha.length < 8) return toast('Senha mínimo 8 caracteres.');
-    if (!/[A-Z]/.test(senha)) return toast('A senha precisa ter MAIÚSCULA.');
-    if (!/[a-z]/.test(senha)) return toast('A senha precisa ter minúscula.');
-    if (!/\d/.test(senha)) return toast('A senha precisa ter número.');
-    if (senha !== senha2) return toast('As senhas não coincidem!');
+    if (!validarCPF(cpf)) return toast('CPF invÃ¡lido!');
+    if (celular.replace(/\D/g, '').length < 10) return toast('Celular invÃ¡lido!');
+    if (!validarEmail(email)) return toast('E-mail invÃ¡lido!');
+    if (pix.length < 3) return toast('Chave Pix invÃ¡lida!');
+    if (senha.length < 8) return toast('Senha mÃ­nimo 8 caracteres.');
+    if (!/[A-Z]/.test(senha)) return toast('A senha precisa ter MAIÃšSCULA.');
+    if (!/[a-z]/.test(senha)) return toast('A senha precisa ter minÃºscula.');
+    if (!/\d/.test(senha)) return toast('A senha precisa ter nÃºmero.');
+    if (senha !== senha2) return toast('As senhas nÃ£o coincidem!');
     if (termos && !termos.checked) return toast('Aceite os termos.');
-    if (!db) return toast('Firebase não conectado.');
+    if (!db) return toast('Firebase nÃ£o conectado.');
 
-    if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
+    if (await buscarUsuarioPorEmail(email)) return toast('E-mail jÃ¡ cadastrado.');
 
-    let indicadoPor = null;
-    if (indicacao) {
-      const s = await db.child('codigo_index/' + indicacao).once('value');
-      const uidInd = s.val();
-      if (uidInd) {
-        const ui = await db.child('usuarios/' + uidInd).once('value');
-        if (ui.exists()) indicadoPor = ui.val();
-      }
-    }
-
-    const id = gerarId();
+    // Backend cria a conta e resolve o indicador â€” o frontend nÃ£o decide o vÃ­nculo.
+    const resp = await fetch(TAX_API + '/cadastro', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nome, email, cpf: cpf.replace(/\D/g, ''), celular: celular.replace(/\D/g, ''),
+        pix, senha_hash: hashSenha(senha), indicacao,
+      }),
+    });
+    const cr = await resp.json().catch(() => ({}));
+    if (!resp.ok || !cr.ok) return toast(cr.message || 'Erro ao criar conta.');
     const usuario = {
-      id, nome,
-      cpf: cpf.replace(/\D/g, ''),
-      celular: celular.replace(/\D/g, ''),
-      email, pix,
-      senha_hash: hashSenha(senha),
-      saldo: 0, saldo_indicacao: 0, investido: 0, rendimentos: 0, bonus: 0,
-      total_depositado: 0,
-      codigo_indicacao: gerarCodigoIndicacao(),
-      indicado_por: indicadoPor ? indicadoPor.id : null,
-      indicado_por_email: indicadoPor ? indicadoPor.email : null,
-      // bônus é creditado no cadastro; marca como recebido para não duplicar no investimento
-      bonus_recebido: indicadoPor ? true : false,
-      criado_em: new Date().toISOString(),
-      role: 'user'
+      id: cr.uid, nome, email, cpf: cpf.replace(/\D/g, ''), celular: celular.replace(/\D/g, ''),
+      pix, saldo: 0, saldo_indicacao: 0, investido: 0, rendimentos: 0, bonus: 0, total_depositado: 0,
+      codigo_indicacao: cr.codigo_indicacao, indicado_por: cr.indicado_por,
+      bonus_recebido: false, criado_em: new Date().toISOString(), role: 'user'
     };
-    await db.child('usuarios/' + id).set(usuario);
-    await db.child('email_index/' + emailKey(email)).set(id);
-    await db.child('codigo_index/' + usuario.codigo_indicacao).set(id);
-    // índice de indicados: permite listar o time sem varrer todos os usuários
-    if (indicadoPor) {
-      await db.child('indicados_index/' + indicadoPor.id + '/' + id).set({
-        nome, email, criado_em: usuario.criado_em, investiu: false
-      });
-    }
-    // credita o bônus de indicação para o padrinho já no cadastro
-    if (indicadoPor) {
-      const pk = indicadoPor.id;
-      const ps = await db.child('usuarios/' + pk).once('value');
-      if (ps.exists()) {
-        const padrinho = ps.val();
-        await db.child('usuarios/' + pk + '/saldo_indicacao').set((Number(padrinho.saldo_indicacao) || 0) + CONFIG.bonusIndicacao);
-        await db.child('usuarios/' + pk + '/bonus').set((Number(padrinho.bonus) || 0) + CONFIG.bonusIndicacao);
-        const txInd = await db.child('transacoes').push({
-          usuario_id: pk, usuario_email: padrinho.email, usuario_nome: padrinho.nome,
-          tipo: 'indicacao', valor: CONFIG.bonusIndicacao, status: 'aprovada',
-          observacao: `Bônus por indicação — ${nome} se cadastrou`, criado_em: new Date().toISOString()
-        });
-        await db.child('transacoes_usuario/' + pk + '/' + txInd.key).set(true);
-      }
-    }
+
     salvarUsuarioLocal(usuario);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
-    toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nGanhe ${fmtBRL(CONFIG.bonusIndicacao)} por amigo que investir!`);
+    toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu cÃ³digo de indicaÃ§Ã£o: ${usuario.codigo_indicacao}\nGanhe ${fmtBRL(CONFIG.bonusIndicacao)} por amigo que ativar um plano pago!`);
     location.href = 'cliente.html';
   } catch (e) {
     console.error(e);
@@ -303,9 +270,9 @@ async function fazerLogin() {
   try {
     const email = el('email').value.trim().toLowerCase();
     const senha = el('senha').value;
-    if (!db) return toast('Firebase não conectado.');
+    if (!db) return toast('Firebase nÃ£o conectado.');
     const usuario = await buscarUsuarioPorEmail(email);
-    if (!usuario) return toast('E-mail não encontrado.');
+    if (!usuario) return toast('E-mail nÃ£o encontrado.');
     if (usuario.senha_hash !== hashSenha(senha)) return toast('Senha incorreta.');
     salvarUsuarioLocal(usuario);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
@@ -378,13 +345,12 @@ async function carregarEquipe() {
   if (!u || !db) return;
   const lista = el('listaIndicados');
   try {
-    // 1) índice direto em UMA leitura (cadastros novos)
-    const idxSnap = await db.child('indicados_index/' + u.id).once('value');
-    const idx = idxSnap.val() || {};
-    const indicados = Object.entries(idx).map(([id, v]) => ({ id, ...v }));
+    // Backend é a fonte da verdade para status de indicação
+    const resposta = await (await fetch(TAX_API + '/indicados?uid=' + encodeURIComponent(u.id))).json().catch(() => ({}));
+    let indicados = resposta.ok && Array.isArray(resposta.indicados) ? resposta.indicados.slice() : [];
     const vistos = new Set(indicados.map(x => x.id));
 
-    // 2) fallback em UMA consulta indexada para cadastros antigos sem índice
+    // 2) fallback em UMA consulta indexada para cadastros antigos sem Ã­ndice
     try {
       const url = firebaseConfig.databaseURL + '/taxinexo/usuarios.json?orderByChild=indicado_por&equalTo=' + encodeURIComponent(u.id);
       const antigos = await (await fetch(url)).json();
@@ -398,7 +364,7 @@ async function carregarEquipe() {
       }
     } catch (_) { /* fallback opcional */ }
 
-    // 3) quem investiu: UMA leitura shallow do índice de investimentos
+    // 3) quem investiu: UMA leitura shallow do Ã­ndice de investimentos
     let investIdx = {};
     try {
       const si = await (await fetch(firebaseConfig.databaseURL + '/taxinexo/investimentos_usuario.json?shallow=true')).json();
@@ -413,17 +379,17 @@ async function carregarEquipe() {
 
     if (lista) {
       if (!indicados.length) {
-        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">🤝</span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
+        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">ðŸ¤</span><h3>Sua equipe ainda estÃ¡ comeÃ§ando</h3><p>Compartilhe seu link de indicaÃ§Ã£o e os nomes de quem se cadastrar aparecerÃ£o aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
       } else {
         lista.innerHTML = indicados.map(ind => {
           const inicial = String(ind.nome || '?').trim()[0]?.toUpperCase() || '?';
           const data = ind.criado_em ? new Date(ind.criado_em).toLocaleDateString('pt-BR') : '';
           const email = String(ind.email || '');
-          const emailCurto = email.length > 26 ? email.slice(0, 24) + '…' : email;
+          const emailCurto = email.length > 26 ? email.slice(0, 24) + 'â€¦' : email;
           return `<div class="team-item">
             <div class="team-avatar">${escTexto(inicial)}</div>
-            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' • ' + data : ''}</small></div>
-            <span class="team-status ${ind.investiu ? 'investiu' : 'pendente'}">${ind.investiu ? 'INVESTIU' : 'CADASTRADO'}</span>
+            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' â€¢ ' + data : ''}</small></div>
+            <span class="team-status ${ind.status === 'convertido' || ind.investiu ? 'investiu' : 'pendente'}">${ind.status === 'convertido' || ind.investiu ? 'CONVERTIDO' : 'PENDENTE'}</span>
           </div>`;
         }).join('');
       }
@@ -445,23 +411,23 @@ async function carregarEquipe() {
       }
       if (btn) {
         btn.disabled = !concluida || jaResgatou;
-        btn.textContent = jaResgatou ? 'RESGATADO ✓' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - indicados.length)}`);
+        btn.textContent = jaResgatou ? 'RESGATADO âœ“' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - indicados.length)}`);
         btn.onclick = () => resgatarMeta(meta.qtd, meta.premio);
       }
     }
   } catch (e) {
     console.error('[Equipe]', e);
-    if (lista) lista.innerHTML = `<p class="empty-state">Não foi possível carregar sua equipe.</p>`;
+    if (lista) lista.innerHTML = `<p class="empty-state">NÃ£o foi possÃ­vel carregar sua equipe.</p>`;
   }
 }
 
 async function resgatarMeta(qtd, premio) {
   const u = usuarioLocal();
   if (!u || !db) return;
-  if (!confirm(`Resgatar o prêmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
+  if (!confirm(`Resgatar o prÃªmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
   try {
     const ja = await db.child('metas_resgatadas/' + u.id + '/' + qtd).once('value');
-    if (ja.exists()) return toast('Esta meta já foi resgatada.');
+    if (ja.exists()) return toast('Esta meta jÃ¡ foi resgatada.');
     const snap = await db.child('usuarios/' + u.id).once('value');
     const atual = snap.exists() ? snap.val() : u;
     await db.child('usuarios/' + u.id + '/saldo_indicacao').set((Number(atual.saldo_indicacao) || 0) + premio);
@@ -469,7 +435,7 @@ async function resgatarMeta(qtd, premio) {
     const tx = await db.child('transacoes').push({
       usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
       tipo: 'indicacao', valor: premio, status: 'aprovada',
-      observacao: `Resgate de meta — ${qtd} indicados`, criado_em: new Date().toISOString()
+      observacao: `Resgate de meta â€” ${qtd} indicados`, criado_em: new Date().toISOString()
     });
     await db.child('transacoes_usuario/' + u.id + '/' + tx.key).set(true);
     await db.child('metas_resgatadas/' + u.id + '/' + qtd).set({ valor: premio, resgatado_em: new Date().toISOString() });
@@ -477,7 +443,7 @@ async function resgatarMeta(qtd, premio) {
     local.saldo_indicacao = (Number(atual.saldo_indicacao) || 0) + premio;
     local.bonus = (Number(atual.bonus) || 0) + premio;
     salvarUsuarioLocal(local);
-    toast(`${fmtBRL(premio)} creditados no saldo de indicação!`);
+    toast(`${fmtBRL(premio)} creditados no saldo de indicaÃ§Ã£o!`);
     await carregarEquipe();
   } catch (e) {
     toast('Erro ao resgatar: ' + e.message);
@@ -494,7 +460,7 @@ function iconePlano(tipo) {
   return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${desenhos[tipo] || ''}</svg>`;
 }
 
-// Limites: plano grátis só 1 vez; planos pagos até 2 vezes por usuário.
+// Limites: plano grÃ¡tis sÃ³ 1 vez; planos pagos atÃ© 2 vezes por usuÃ¡rio.
 function limiteDoPlano(p) { return p.id === 0 ? 1 : 2; }
 async function contarInvestimentosDoPlano(uid, planoId) {
   if (!db) return 0;
@@ -514,7 +480,7 @@ async function carregarPlanos() {
     const usados = contagens[p.id] || 0;
     const limite = limiteDoPlano(p);
     const esgotado = usados >= limite;
-    const selo = p.id === 0 ? 'limitado a 1x' : 'até 2x por conta';
+    const selo = p.id === 0 ? 'limitado a 1x' : 'atÃ© 2x por conta';
     return `
     <article class="plano-card" aria-label="${p.nome}">
       <h4>${p.nome.toUpperCase()}</h4>
@@ -522,12 +488,12 @@ async function carregarPlanos() {
       <img class="plan-car" src="plan-car.webp" alt="Carro Taxinexo" width="1000" height="534" loading="lazy">
       <dl class="plan-facts">
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('entrada')}</span><dt>Entrada</dt><dd>${fmtBRL(p.entrada)}</dd></div>
-        <div><span class="plan-icon" aria-hidden="true">${iconePlano('diaria')}</span><dt>Diária</dt><dd>${fmtBRL(p.diaria)}</dd></div>
+        <div><span class="plan-icon" aria-hidden="true">${iconePlano('diaria')}</span><dt>DiÃ¡ria</dt><dd>${fmtBRL(p.diaria)}</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('ciclo')}</span><dt>Ciclo</dt><dd>${p.ciclo} Dias</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('retorno')}</span><dt>Total recebido</dt><dd>${fmtBRL(p.retorno)}</dd></div>
       </dl>
       <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${p.nome}">
-        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">→</span>
+        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">â†’</span>
       </button>
     </article>`;
   }));
@@ -536,19 +502,19 @@ async function carregarPlanos() {
 
 async function escolherPlano(id) {
   const u = usuarioLocal();
-  if (!u) return toast('Faça login para investir.');
+  if (!u) return toast('FaÃ§a login para investir.');
   const p = planos.find(x => x.id === Number(id)); if (!p) return;
   const usados = await contarInvestimentosDoPlano(u.id, p.id);
   if (usados >= limiteDoPlano(p)) {
-    return toast(p.id === 0 ? 'O plano grátis só pode ser usado 1 vez.' : 'Este plano já foi contratado 2 vezes.');
+    return toast(p.id === 0 ? 'O plano grÃ¡tis sÃ³ pode ser usado 1 vez.' : 'Este plano jÃ¡ foi contratado 2 vezes.');
   }
   const sel = el('investirPlano'); if (sel) sel.value = String(id);
   const info = el('investirInfo');
-  if (info) info.textContent = `${p.nome} • Entrada ${fmtBRL(p.entrada)} • Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias • Total ${fmtBRL(p.retorno)}`;
+  if (info) info.textContent = `${p.nome} â€¢ Entrada ${fmtBRL(p.entrada)} â€¢ DiÃ¡ria ${fmtBRL(p.diaria)} por ${p.ciclo} dias â€¢ Total ${fmtBRL(p.retorno)}`;
   const dlg = el('investirDialog'); if (dlg) dlg.showModal();
 }
 
-// Timer: próximo rendimento no horário exato da compra (24h)
+// Timer: prÃ³ximo rendimento no horÃ¡rio exato da compra (24h)
 function proxPagamentoCliente(inv) {
   let t = Date.parse(inv.proximo_pagamento || '');
   if (!isFinite(t)) {
@@ -581,7 +547,7 @@ async function carregarInvestimentos() {
     const itens = await lerCada('investimentos', keys);
     const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || ''));
     if (!lista.length) {
-      tbody.innerHTML = '<p class="empty-state">Você ainda não tem investimentos. Escolha um plano abaixo para começar.</p>';
+      tbody.innerHTML = '<p class="empty-state">VocÃª ainda nÃ£o tem investimentos. Escolha um plano abaixo para comeÃ§ar.</p>';
       return;
     }
     tbody.innerHTML = lista.map(inv => {
@@ -592,11 +558,11 @@ async function carregarInvestimentos() {
       return `<article class="invest-card">
         <div class="invest-head">
           <div class="invest-plan"><span class="invest-dot"></span><strong>${inv.plano_nome || 'Investimento'}</strong></div>
-          <span class="invest-status ${ativo ? 'on' : ''}">${ativo ? 'Ativo' : 'Concluído'}</span>
+          <span class="invest-status ${ativo ? 'on' : ''}">${ativo ? 'Ativo' : 'ConcluÃ­do'}</span>
         </div>
         <div class="invest-values">
           <div><span>Aplicado</span><strong>${fmtBRL(inv.valor_aplicado)}</strong></div>
-          <div><span>Diária</span><strong class="up">+ ${fmtBRL(inv.rendimento_diario)}</strong></div>
+          <div><span>DiÃ¡ria</span><strong class="up">+ ${fmtBRL(inv.rendimento_diario)}</strong></div>
           <div><span>Recebido</span><strong>${fmtBRL(inv.rendimento_pago)}</strong></div>
         </div>
         <div class="invest-progress">
@@ -604,8 +570,8 @@ async function carregarInvestimentos() {
           <div class="invest-bar"><i style="width:${pct}%"></i></div>
         </div>
         ${ativo ? `<div class="invest-timer" data-proximo="${proxPagamentoCliente(inv)}">
-          <span class="invest-timer-ico" aria-hidden="true">⏱</span>
-          <span class="invest-timer-txt">Próximo rendimento em <strong>--:--:--</strong></span>
+          <span class="invest-timer-ico" aria-hidden="true">â±</span>
+          <span class="invest-timer-txt">PrÃ³ximo rendimento em <strong>--:--:--</strong></span>
         </div>` : ''}
       </article>`;
     }).join('');
@@ -619,10 +585,10 @@ async function carregarExtrato() {
     const keys = await chavesDaLista('transacoes_usuario/' + u.id);
     const itens = await lerCada('transacoes', keys);
     const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || '')).slice(0, 30);
-    if (!lista.length) { box.innerHTML = '<p class="empty-state">Nenhuma movimentação ainda.</p>'; return; }
+    if (!lista.length) { box.innerHTML = '<p class="empty-state">Nenhuma movimentaÃ§Ã£o ainda.</p>'; return; }
     box.innerHTML = lista.map(t => `
       <div class="movimento">
-        <div><strong>${t.tipo || 'Transação'}</strong><small>${fmtData(t.criado_em)}</small></div>
+        <div><strong>${t.tipo || 'TransaÃ§Ã£o'}</strong><small>${fmtData(t.criado_em)}</small></div>
         <span class="${['rendimento', 'bonus', 'indicacao', 'retorno', 'deposito'].includes(t.tipo) ? 'positivo' : 'negativo'}">${['saque', 'investimento'].includes(t.tipo) ? '-' : '+'} ${fmtBRL(t.valor)}</span>
       </div>`).join('');
   } catch (e) { console.error('[Extrato]', e); }
@@ -634,11 +600,11 @@ function copiarLinkIndicacao() {
   const input = el('linkIndicacao'); if (!input) return;
   input.select(); input.setSelectionRange(0, 99999);
   try { document.execCommand('copy'); } catch (e) { if (navigator.clipboard) navigator.clipboard.writeText(input.value); }
-  toast('Link de indicação copiado!');
+  toast('Link de indicaÃ§Ã£o copiado!');
 }
 
 // ------------------------------------------------------------
-// DEPÓSITO PIX
+// DEPÃ“SITO PIX
 // ------------------------------------------------------------
 let pixInterval = null;
 let pixAtual = null;
@@ -676,10 +642,10 @@ function configurarCarteira() {
 
 async function gerarPix() {
   const valor = lerValor(el('depositoValor').value);
-  if (!(valor >= CONFIG.depositoMinimo)) return setMensagem('depositoMsg', `Depósito mínimo: ${fmtBRL(CONFIG.depositoMinimo)}.`, 'error');
-  if (valor > CONFIG.depositoMaximo) return setMensagem('depositoMsg', `Valor máximo por depósito: ${fmtBRL(CONFIG.depositoMaximo)}.`, 'error');
-  const u = usuarioLocal(); if (!u) return toast('Faça login primeiro.');
-  if (typeof SigiloPay === 'undefined') return toast('Módulo de pagamento não carregado.');
+  if (!(valor >= CONFIG.depositoMinimo)) return setMensagem('depositoMsg', `DepÃ³sito mÃ­nimo: ${fmtBRL(CONFIG.depositoMinimo)}.`, 'error');
+  if (valor > CONFIG.depositoMaximo) return setMensagem('depositoMsg', `Valor mÃ¡ximo por depÃ³sito: ${fmtBRL(CONFIG.depositoMaximo)}.`, 'error');
+  const u = usuarioLocal(); if (!u) return toast('FaÃ§a login primeiro.');
+  if (typeof SigiloPay === 'undefined') return toast('MÃ³dulo de pagamento nÃ£o carregado.');
 
   pixCancelado = false;
   const btn = el('btnGerarPix') || document.querySelector('#depositoForm button[type="submit"]');
@@ -688,7 +654,7 @@ async function gerarPix() {
   setMensagem('depositoMsg', 'Gerando seu PIX...', 'loading');
 
   try {
-    const r = await SigiloPay.criarCobrancaPIX(valor, 'Depósito Taxinexo', u.email, u.id);
+    const r = await SigiloPay.criarCobrancaPIX(valor, 'DepÃ³sito Taxinexo', u.email, u.id);
     if (!r.sucesso) return setMensagem('depositoMsg', 'Erro: ' + r.mensagem, 'error');
     pixAtual = r;
 
@@ -702,19 +668,19 @@ async function gerarPix() {
       if (r.qr_code_base64) {
         qr.innerHTML = `<img src="data:image/png;base64,${r.qr_code_base64}" alt="QR Code PIX" style="width:220px;height:220px;border-radius:14px;border:6px solid white;">`;
       } else if (r.qr_code_image) {
-        // imagem gerada (QR server) — com fallback se falhar
-        qr.innerHTML = `<img src="${r.qr_code_image}" alt="QR Code PIX" style="width:220px;height:220px;border-radius:14px;border:6px solid white;background:#fff;" onerror="this.parentElement.innerHTML='<p style=&quot;color:var(--muted)&quot;Código PIX: '+this.alt+'</p>'">`;
+        // imagem gerada (QR server) â€” com fallback se falhar
+        qr.innerHTML = `<img src="${r.qr_code_image}" alt="QR Code PIX" style="width:220px;height:220px;border-radius:14px;border:6px solid white;background:#fff;" onerror="this.parentElement.innerHTML='<p style=&quot;color:var(--muted)&quot;CÃ³digo PIX: '+this.alt+'</p>'">`;
       } else if (typeof QRCode !== 'undefined') {
         new QRCode(qr, { text: r.qr_code_copia_cola, width: 220, height: 220, colorDark: '#000', colorLight: '#fff' });
       } else {
-        qr.innerHTML = `<p style="color:var(--muted)">Código: ${r.qr_code_copia_cola}</p>`;
+        qr.innerHTML = `<p style="color:var(--muted)">CÃ³digo: ${r.qr_code_copia_cola}</p>`;
       }
     }
     if (el('pixCopiaCola')) el('pixCopiaCola').value = r.qr_code_copia_cola || '';
     if (el('pixValor')) el('pixValor').textContent = fmtBRL(valor);
 
     if (db) {
-      // O Worker já registra o depósito; só cria aqui se ele não registrou.
+      // O Worker jÃ¡ registra o depÃ³sito; sÃ³ cria aqui se ele nÃ£o registrou.
       const ja = await db.child('identifier_index/' + r.identifier).once('value');
       if (!ja.exists()) {
         const txDep = await db.child('transacoes').push({
@@ -726,7 +692,7 @@ async function gerarPix() {
         await db.child('identifier_index/' + r.identifier).set(txDep.key);
       }
     }
-    setMensagem('depositoMsg', 'PIX gerado! Escaneie ou copie o código.', 'success');
+    setMensagem('depositoMsg', 'PIX gerado! Escaneie ou copie o cÃ³digo.', 'success');
     iniciarVerificacao(r.identifier, valor, u);
   } catch (e) {
     console.error('[PIX]', e);
@@ -750,9 +716,9 @@ function iniciarVerificacao(identifier, valor, usuario) {
     }
     try {
       if (!db) return;
-      // O Webhook é a fonte autoritativa e quem credita o saldo.
-      // Aqui apenas acompanhamos o status da transação no Firebase
-      // (o polling da SigiloPay é bloqueado com 429 — não usar mais).
+      // O Webhook Ã© a fonte autoritativa e quem credita o saldo.
+      // Aqui apenas acompanhamos o status da transaÃ§Ã£o no Firebase
+      // (o polling da SigiloPay Ã© bloqueado com 429 â€” nÃ£o usar mais).
       const idx = await db.child('identifier_index/' + identifier).once('value');
       const tk = idx.val();
       if (!tk) return;
@@ -773,88 +739,54 @@ function copiarPix() {
   const c = el('pixCopiaCola'); if (!c) return;
   c.select(); c.setSelectionRange(0, 99999);
   try { document.execCommand('copy'); } catch (e) { if (navigator.clipboard) navigator.clipboard.writeText(c.value); }
-  toast('Código PIX copiado!');
+  toast('CÃ³digo PIX copiado!');
 }
 
 // ------------------------------------------------------------
 // INVESTIMENTO
 // ------------------------------------------------------------
 async function confirmarInvestimento() {
+  const btn = el('btnConfirmarInvestimento') || document.querySelector('#investirDialog button[onclick*="confirmarInvestimento"]');
   const sel = el('investirPlano');
-  const p = planos.find(x => x.id === Number(sel && sel.value));
+  const planoId = Number(sel && sel.value);
+  const p = planos.find(x => x.id === planoId);
   if (!p) return toast('Selecione um plano.');
   const u = usuarioLocal();
-  const total = (Number(u.saldo) || 0) + (Number(u.saldo_indicacao) || 0);
-  if (total < p.entrada) return toast(`Saldo insuficiente! Você tem ${fmtBRL(total)} e precisa de ${fmtBRL(p.entrada)}.`);
-  if (!db) return toast('Firebase não conectado.');
-  const usados = await contarInvestimentosDoPlano(u.id, p.id);
-  if (usados >= limiteDoPlano(p)) {
-    return toast(p.id === 0 ? 'O plano grátis só pode ser usado 1 vez.' : 'Este plano já foi contratado 2 vezes.');
+  if (!u || !u.id) return toast('FaÃ§a login para investir.');
+
+  // ProteÃ§Ã£o visual complementar (a validaÃ§Ã£o real Ã© o CAS no backend)
+  if (btn) {
+    if (btn.dataset.busy === '1') return;
+    btn.dataset.busy = '1'; btn.disabled = true;
+    btn.dataset.original = btn.innerHTML;
+    btn.innerHTML = 'Processando...';
   }
-
   try {
-    const agora = new Date();
-    const fim = new Date(agora.getTime() + p.ciclo * 86400000);
-    const invRef = await db.child('investimentos').push({
-      usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-      plano_id: p.id, plano_nome: p.nome,
-      valor_aplicado: p.entrada, rendimento_diario: p.diaria,
-      rendimentoDiario: p.diaria, total_projetado: p.retorno,
-      duracao_dias: p.ciclo, duracao: p.ciclo,
-      dias_pagos: 0, rendimento_pago: 0,
-      data_inicio: agora.toISOString(), data_fim: fim.toISOString(),
-      proximo_pagamento: new Date(agora.getTime() + 86400000).toISOString(),
-      status: 'ativo', criado_em: agora.toISOString()
+    // Identificador Ãºnico desta intenÃ§Ã£o de compra (idempotÃªncia)
+    const txId = 'C' + Date.now() + '_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 12) : Math.random().toString(36).slice(2, 14));
+    const resp = await fetch(TAX_API + '/comprar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uid: u.id, txId, planoId }),
     });
-    await db.child('investimentos_usuario/' + u.id + '/' + invRef.key).set(true);
-
-    const snap = await db.child('usuarios/' + u.id).once('value');
-    if (snap.exists()) {
-      const key = u.id;
-      const atual = snap.val();
-      const descontoInd = Math.min(p.entrada, Number(atual.saldo_indicacao) || 0);
-      const descontoSaldo = p.entrada - descontoInd;
-      await db.child('usuarios/' + key + '/saldo_indicacao').set((Number(atual.saldo_indicacao) || 0) - descontoInd);
-      await db.child('usuarios/' + key + '/saldo').set((Number(atual.saldo) || 0) - descontoSaldo);
-      await db.child('usuarios/' + key + '/investido').set((Number(atual.investido) || 0) + p.entrada);
-
-      // Bônus de indicação (uma vez)
-      if (atual.indicado_por && !atual.bonus_recebido) {
-        const ps = await db.child('usuarios/' + atual.indicado_por).once('value');
-        if (ps.exists()) {
-          const pk = atual.indicado_por;
-          const padrinho = ps.val();
-          await db.child('usuarios/' + pk + '/saldo_indicacao').set((Number(padrinho.saldo_indicacao) || 0) + CONFIG.bonusIndicacao);
-          await db.child('usuarios/' + pk + '/bonus').set((Number(padrinho.bonus) || 0) + CONFIG.bonusIndicacao);
-          const txInd = await db.child('transacoes').push({
-            usuario_id: padrinho.id, usuario_email: padrinho.email, usuario_nome: padrinho.nome,
-            tipo: 'indicacao', valor: CONFIG.bonusIndicacao, status: 'aprovada',
-            observacao: `Bônus por indicação — ${atual.nome} investiu`, criado_em: new Date().toISOString()
-          });
-          await db.child('transacoes_usuario/' + padrinho.id + '/' + txInd.key).set(true);
-          await db.child('usuarios/' + key + '/bonus_recebido').set(true);
-        }
-      }
-
-      u.saldo = (Number(atual.saldo) || 0) - descontoSaldo;
-      u.saldo_indicacao = (Number(atual.saldo_indicacao) || 0) - descontoInd;
-      u.investido = (Number(atual.investido) || 0) + p.entrada;
-      salvarUsuarioLocal(u);
-
-      const txInv = await db.child('transacoes').push({
-        usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-        tipo: 'investimento', valor: p.entrada, status: 'aprovada',
-        observacao: `Investimento no plano ${p.nome}`, criado_em: new Date().toISOString()
-      });
-      await db.child('transacoes_usuario/' + u.id + '/' + txInv.key).set(true);
-      db.child('plataforma/total_investido').transaction(v => (v || 0) + p.entrada);
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) {
+      if (r.duplicada) return toast('Esta compra jÃ¡ foi processada.');
+      return toast(r.message || 'Erro ao processar a compra.');
     }
-    toast(`Investimento confirmado!\n\nPlano: ${p.nome}\nValor: ${fmtBRL(p.entrada)}\nDiária: ${fmtBRL(p.diaria)} por ${p.ciclo} dias\nTotal projetado: ${fmtBRL(p.retorno)}`);
+    if (r.duplicada) return toast('Esta compra jÃ¡ foi processada.');
+
+    // Sincroniza saldo com o servidor (fonte da verdade)
+    const snap = await db.child('usuarios/' + u.id).once('value');
+    if (snap.exists()) salvarUsuarioLocal(snap.val());
+
+    toast(`Investimento confirmado!\n\nPlano: ${p.nome}\nValor: ${fmtBRL(r.valor)}\nDiÃ¡ria: ${fmtBRL(p.diaria)} por ${p.ciclo} dias\nTotal projetado: ${fmtBRL(p.retorno)}${r.comissao_gerada ? '\n\nComissÃ£o de indicaÃ§Ã£o liberada: ' + fmtBRL(r.comissao_gerada) : ''}`);
     const d = el('investirDialog'); if (d) d.close();
     setTimeout(() => location.reload(), 1200);
   } catch (e) {
     console.error('[Investir]', e);
     toast('Erro ao investir: ' + e.message);
+  } finally {
+    if (btn) { btn.dataset.busy = '0'; btn.disabled = false; btn.innerHTML = btn.dataset.original || 'Investir'; }
   }
 }
 
@@ -879,27 +811,27 @@ async function contarSaquesHoje(uid) {
 async function confirmarSaque(ev) {
   const valor = lerValor(el('saqueValor').value);
   const pix = el('saquePix').value.trim();
-  const u = usuarioLocal(); if (!u) return toast('Faça login primeiro.');
+  const u = usuarioLocal(); if (!u) return toast('FaÃ§a login primeiro.');
 
   const controle = await saquesEstaoBloqueados();
   if (controle.bloqueado) return toast(controle.mensagem);
-  if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h às ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
-  if (!(valor >= CONFIG.saqueMinimo)) return toast(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
-  if (pix.length < 4) return toast('Digite uma chave Pix válida.');
+  if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h Ã s ${CONFIG.horarioSaqueFim}h. DisponÃ­vel: ${proximoHorarioSaque()}.`);
+  if (!(valor >= CONFIG.saqueMinimo)) return toast(`Saque mÃ­nimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
+  if (pix.length < 4) return toast('Digite uma chave Pix vÃ¡lida.');
   const feitos = await contarSaquesHoje(u.id);
-  if (feitos >= CONFIG.saquesPorDia) return toast(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
-  if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
-  // Só permite saque para quem já fez um depósito real.
-  if ((Number(u.total_depositado) || 0) <= 0) return toast('Você precisa fazer um depósito antes de solicitar um saque.');
-  if (!db) return toast('Firebase não conectado.');
+  if (feitos >= CONFIG.saquesPorDia) return toast(`VocÃª jÃ¡ fez ${CONFIG.saquesPorDia} saques hoje.`);
+  if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! VocÃª tem ${fmtBRL(u.saldo)}.`);
+  // SÃ³ permite saque para quem jÃ¡ fez um depÃ³sito real.
+  if ((Number(u.total_depositado) || 0) <= 0) return toast('VocÃª precisa fazer um depÃ³sito antes de solicitar um saque.');
+  if (!db) return toast('Firebase nÃ£o conectado.');
 
   const c = calcularSaque(valor);
   if (typeof SigiloPay !== 'undefined' && SigiloPay.consultarSaldo) {
     const s = await SigiloPay.consultarSaldo();
-    if (s.sucesso && s.available < c.liquido) return toast('Saque temporariamente indisponível: saldo em processamento.');
+    if (s.sucesso && s.available < c.liquido) return toast('Saque temporariamente indisponÃ­vel: saldo em processamento.');
   }
 
-  if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocê recebe: ${fmtBRL(c.liquido)}`)) return;
+  if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocÃª recebe: ${fmtBRL(c.liquido)}`)) return;
 
   const btn = ev && ev.target && ev.target.querySelector ? ev.target.querySelector('button[type="submit"]') : null;
   const original = btn ? btn.innerHTML : '';
@@ -923,13 +855,13 @@ async function confirmarSaque(ev) {
       const txSaq = await db.child('transacoes').push({
         usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
         tipo: 'saque', valor: c.liquido, status: 'aprovada',
-        observacao: `Saque de ${fmtBRL(c.bruto)} — taxa ${fmtBRL(c.taxa)}`, criado_em: new Date().toISOString()
+        observacao: `Saque de ${fmtBRL(c.bruto)} â€” taxa ${fmtBRL(c.taxa)}`, criado_em: new Date().toISOString()
       });
       await db.child('transacoes_usuario/' + u.id + '/' + txSaq.key).set(true);
       db.child('plataforma/taxas_recebidas').transaction(v => (v || 0) + c.taxa);
       u.saldo = novoSaldo; salvarUsuarioLocal(u);
     }
-    toast(`Saque enviado!\n\nVocê recebe: ${fmtBRL(c.liquido)}`);
+    toast(`Saque enviado!\n\nVocÃª recebe: ${fmtBRL(c.liquido)}`);
     const d = el('saqueDialog'); if (d) d.close();
     setTimeout(() => location.reload(), 1200);
   } catch (e) {
@@ -963,7 +895,7 @@ async function carregarAdmin() {
     const saques = Object.values(saq.val() || {});
     const transacoes = Object.values(tx.val() || {});
     ADMIN_CACHE = { usuarios: us.val() || {}, investimentos: inv.val() || {}, saques: saques, transacoes: transacoes };
-    // Mapa de indicados calculado UMA vez (evita varrer todos os usuários por linha)
+    // Mapa de indicados calculado UMA vez (evita varrer todos os usuÃ¡rios por linha)
     ADMIN_CACHE.indicados = {};
     for (const u of usuarios) {
       if (u && u.indicado_por) ADMIN_CACHE.indicados[u.indicado_por] = (ADMIN_CACHE.indicados[u.indicado_por] || 0) + 1;
@@ -977,7 +909,7 @@ async function carregarAdmin() {
     if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saques.filter(s => s.status === 'pago'), 'valor_liquido'));
 
     if (el('adminSaldoGateway')) {
-      // Saldo calculado das transações já carregadas — sem ida extra ao Worker
+      // Saldo calculado das transaÃ§Ãµes jÃ¡ carregadas â€” sem ida extra ao Worker
       let disp = 0;
       for (const t of transacoes) {
         const v = Number(t.valor || 0);
@@ -1020,9 +952,9 @@ async function adminAtualizarSaldoGateway() {
   elSaldo.textContent = '...';
   try {
     const s = await SigiloPay.consultarSaldo();
-    elSaldo.textContent = s.sucesso ? fmtBRL(s.available) : '—';
-    toast(s.sucesso ? `Saldo atualizado: ${fmtBRL(s.available)}` : 'Não foi possível consultar o saldo.');
-  } catch (e) { elSaldo.textContent = '—'; toast('Erro: ' + e.message); }
+    elSaldo.textContent = s.sucesso ? fmtBRL(s.available) : 'â€”';
+    toast(s.sucesso ? `Saldo atualizado: ${fmtBRL(s.available)}` : 'NÃ£o foi possÃ­vel consultar o saldo.');
+  } catch (e) { elSaldo.textContent = 'â€”'; toast('Erro: ' + e.message); }
 }
 
 function renderAdminUsuarios() {
@@ -1042,7 +974,7 @@ function renderAdminUsuarios() {
       <td>${u.criado_em ? fmtData(u.criado_em) : '-'}</td>
       <td><button class="mini-btn danger" onclick="adminExcluirUsuario('${u.id}', ${JSON.stringify(escTexto(u.nome || ''))})">Excluir</button></td>
     </tr>`;
-  }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';
+  }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuÃ¡rio encontrado.</td></tr>';
 }
 
 function renderAdminInvestimentos() {
@@ -1071,8 +1003,8 @@ function renderAdminSelectUsuarios() {
   const atual = sel.value;
   const lista = Object.entries(ADMIN_CACHE.usuarios || {}).map(([id, u]) => ({ id, nome: u.nome || id, email: u.email || '' }));
   lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
-  sel.innerHTML = '<option value="">Selecione o usuário...</option>' + lista.map(u =>
-    `<option value="${u.id}">${escTexto(u.nome)} — ${escTexto(u.email)}</option>`).join('');
+  sel.innerHTML = '<option value="">Selecione o usuÃ¡rio...</option>' + lista.map(u =>
+    `<option value="${u.id}">${escTexto(u.nome)} â€” ${escTexto(u.email)}</option>`).join('');
   if (atual && lista.some(u => u.id === atual)) sel.value = atual;
 }
 
@@ -1083,12 +1015,12 @@ async function adminCriarUsuario() {
   const celular = String(el('novoUsuarioCelular')?.value || '').replace(/\D/g, '');
   const senha = String(el('novoUsuarioSenha')?.value || '');
   if (nome.split(' ').length < 2) return toast('Digite o nome completo.');
-  if (!validarEmail(email)) return toast('E-mail inválido.');
-  if (!validarCPF(cpf)) return toast('CPF inválido.');
-  if (celular.length < 10) return toast('Celular inválido.');
-  if (senha.length < 8) return toast('Senha mínima de 8 caracteres.');
-  if (!db) return toast('Firebase não conectado.');
-  if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
+  if (!validarEmail(email)) return toast('E-mail invÃ¡lido.');
+  if (!validarCPF(cpf)) return toast('CPF invÃ¡lido.');
+  if (celular.length < 10) return toast('Celular invÃ¡lido.');
+  if (senha.length < 8) return toast('Senha mÃ­nima de 8 caracteres.');
+  if (!db) return toast('Firebase nÃ£o conectado.');
+  if (await buscarUsuarioPorEmail(email)) return toast('E-mail jÃ¡ cadastrado.');
   const id = gerarId();
   const usuario = {
     id, nome, email, cpf, celular, pix: celular,
@@ -1101,27 +1033,27 @@ async function adminCriarUsuario() {
   await db.child('email_index/' + emailKey(email)).set(id);
   await db.child('codigo_index/' + usuario.codigo_indicacao).set(id);
   ['novoUsuarioNome','novoUsuarioEmail','novoUsuarioCpf','novoUsuarioCelular','novoUsuarioSenha'].forEach(i => { if (el(i)) el(i).value = ''; });
-  toast(`Usuário ${nome.split(' ')[0]} criado!`);
+  toast(`UsuÃ¡rio ${nome.split(' ')[0]} criado!`);
   carregarAdmin();
 }
 
 async function adminAjustarSaldo(sinal) {
   const uidSel = String(el('adminSaldoUsuario')?.value || '');
   const valor = Math.round((Number(el('adminSaldoValor')?.value) || 0) * 100) / 100;
-  if (!uidSel) return toast('Selecione um usuário.');
+  if (!uidSel) return toast('Selecione um usuÃ¡rio.');
   if (!(valor > 0)) return toast('Digite um valor maior que zero.');
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Firebase nÃ£o conectado.');
   const snap = await db.child('usuarios/' + uidSel).once('value');
-  if (!snap.exists()) return toast('Usuário não encontrado.');
+  if (!snap.exists()) return toast('UsuÃ¡rio nÃ£o encontrado.');
   const u = snap.val();
   const atual = Number(u.saldo || 0);
   const novo = Math.round((atual + sinal * valor) * 100) / 100;
-  if (novo < 0) return toast('Saldo não pode ficar negativo.');
+  if (novo < 0) return toast('Saldo nÃ£o pode ficar negativo.');
   await db.child('usuarios/' + uidSel + '/saldo').set(novo);
   const tx = await db.child('transacoes').push({
     usuario_id: uidSel, usuario_email: u.email, usuario_nome: u.nome,
     tipo: sinal > 0 ? 'bonus' : 'ajuste', valor, status: 'aprovada',
-    observacao: (sinal > 0 ? 'Crédito manual admin' : 'Débito manual admin'), criado_em: new Date().toISOString()
+    observacao: (sinal > 0 ? 'CrÃ©dito manual admin' : 'DÃ©bito manual admin'), criado_em: new Date().toISOString()
   });
   await db.child('transacoes_usuario/' + uidSel + '/' + tx.key).set(true);
   toast(`${sinal > 0 ? 'Adicionado' : 'Removido'} ${fmtBRL(valor)}. Saldo: ${fmtBRL(novo)}`);
@@ -1130,8 +1062,8 @@ async function adminAjustarSaldo(sinal) {
 }
 
 async function adminExcluirUsuario(id, nome) {
-  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
-  if (!db) return toast('Firebase não conectado.');
+  if (!confirm(`Excluir o usuÃ¡rio "${nome}"? Essa aÃ§Ã£o nÃ£o pode ser desfeita.`)) return;
+  if (!db) return toast('Firebase nÃ£o conectado.');
   const snap = await db.child('usuarios/' + id).once('value');
   const u = snap.val() || {};
   await db.child('usuarios/' + id).remove();
@@ -1139,7 +1071,7 @@ async function adminExcluirUsuario(id, nome) {
   if (u.codigo_indicacao) await db.child('codigo_index/' + u.codigo_indicacao).remove();
   await db.child('transacoes_usuario/' + id).remove();
   await db.child('indicados_index/' + id).remove();
-  toast('Usuário excluído.');
+  toast('UsuÃ¡rio excluÃ­do.');
   carregarAdmin();
 }
 
@@ -1151,7 +1083,7 @@ async function adminCarregarGateway() {
     if (el('adminGatewayUrl')) el('adminGatewayUrl').value = g.relayUrl || '';
     if (el('adminGatewayToken')) el('adminGatewayToken').value = g.relayToken || '';
     if (el('adminGatewayWebhook')) el('adminGatewayWebhook').value = g.webhookToken || '';
-    setMensagem('adminGatewayMsg', 'Configuração carregada.', 'success');
+    setMensagem('adminGatewayMsg', 'ConfiguraÃ§Ã£o carregada.', 'success');
   } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
 }
 async function adminSalvarGateway() {
@@ -1162,31 +1094,31 @@ async function adminSalvarGateway() {
     webhookToken: String(el('adminGatewayWebhook')?.value || '').trim(),
     atualizado_em: new Date().toISOString()
   };
-  if (!cfg.relayUrl || !cfg.relayToken) return setMensagem('adminGatewayMsg', 'URL e token do relay são obrigatórios.', 'error');
+  if (!cfg.relayUrl || !cfg.relayToken) return setMensagem('adminGatewayMsg', 'URL e token do relay sÃ£o obrigatÃ³rios.', 'error');
   await db.child('config/gateway').set(cfg);
-  setMensagem('adminGatewayMsg', 'Chaves salvas. O Worker já está usando a nova configuração.', 'success');
+  setMensagem('adminGatewayMsg', 'Chaves salvas. O Worker jÃ¡ estÃ¡ usando a nova configuraÃ§Ã£o.', 'success');
 }
 async function adminTestarGateway() {
   try {
     const r = await SigiloPay.consultarSaldo();
-    setMensagem('adminGatewayMsg', r.sucesso ? `Gateway OK — saldo ${fmtBRL(r.available)}` : 'Gateway não respondeu.', r.sucesso ? 'success' : 'error');
+    setMensagem('adminGatewayMsg', r.sucesso ? `Gateway OK â€” saldo ${fmtBRL(r.available)}` : 'Gateway nÃ£o respondeu.', r.sucesso ? 'success' : 'error');
   } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
 }
 async function processarRendimentos() {
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Firebase nÃ£o conectado.');
   if (!confirm('Processar rendimentos de TODOS os clientes agora?')) return;
   const btn = event && event.target;
   const original = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Verificando saldo...'; }
   try {
     const saldo = await SigiloPay.consultarSaldo();
-    if (!saldo.sucesso) return toast('Não foi possível consultar o saldo da SigiloPay.');
+    if (!saldo.sucesso) return toast('NÃ£o foi possÃ­vel consultar o saldo da SigiloPay.');
     const snap = await db.child('investimentos').once('value');
     const dados = snap.val() || {};
     const ativos = Object.entries(dados).filter(([k, i]) => i.status === 'ativo');
     const necessario = ativos.reduce((a, [k, i]) => a + (Number(i.rendimento_diario) || 0), 0);
     if (!ativos.length) return toast('Nenhum investimento ativo.');
-    if (saldo.available < necessario) return toast(`Saldo insuficiente na SigiloPay. Disponível: ${fmtBRL(saldo.available)}. Necessário: ${fmtBRL(necessario)}.`);
+    if (saldo.available < necessario) return toast(`Saldo insuficiente na SigiloPay. DisponÃ­vel: ${fmtBRL(saldo.available)}. NecessÃ¡rio: ${fmtBRL(necessario)}.`);
 
     if (btn) btn.innerHTML = 'Processando...';
     let creditados = 0, total = 0, finalizados = 0;
@@ -1206,7 +1138,7 @@ async function processarRendimentos() {
         const txRen = await db.child('transacoes').push({
           usuario_id: inv.usuario_id, usuario_email: inv.usuario_email, usuario_nome: inv.usuario_nome,
           tipo: 'rendimento', valor: diaria, status: 'aprovada',
-          observacao: `Rendimento diário — ${inv.plano_nome}`, criado_em: new Date().toISOString()
+          observacao: `Rendimento diÃ¡rio â€” ${inv.plano_nome}`, criado_em: new Date().toISOString()
         });
         await db.child('transacoes_usuario/' + uk + '/' + txRen.key).set(true);
         creditados++; total += diaria;
@@ -1225,7 +1157,7 @@ async function processarRendimentos() {
           const txRet = await db.child('transacoes').push({
             usuario_id: inv.usuario_id, usuario_email: inv.usuario_email, usuario_nome: inv.usuario_nome,
             tipo: 'retorno', valor: aplicado, status: 'aprovada',
-            observacao: `Retorno do investimento — ${inv.plano_nome}`, criado_em: new Date().toISOString()
+            observacao: `Retorno do investimento â€” ${inv.plano_nome}`, criado_em: new Date().toISOString()
           });
           await db.child('transacoes_usuario/' + uk2 + '/' + txRet.key).set(true);
         }
@@ -1256,7 +1188,7 @@ async function alternarBloqueioSaques() {
 }
 
 // ------------------------------------------------------------
-// ADMIN — LINK DO GRUPO
+// ADMIN â€” LINK DO GRUPO
 // ------------------------------------------------------------
 const LINK_GRUPO_PADRAO = 'https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2';
 function aplicarLinkGrupo(url) {
@@ -1283,15 +1215,15 @@ async function salvarLinkGrupo() {
   const campo = el('adminLinkGrupo');
   if (!campo) return;
   const url = campo.value.trim();
-  if (!/^https?:\/\//i.test(url)) return setMensagem('adminLinkGrupoMsg', 'Informe uma URL válida (começa com https://).', 'error');
-  if (!db) return setMensagem('adminLinkGrupoMsg', 'Firebase não conectado.', 'error');
+  if (!/^https?:\/\//i.test(url)) return setMensagem('adminLinkGrupoMsg', 'Informe uma URL vÃ¡lida (comeÃ§a com https://).', 'error');
+  if (!db) return setMensagem('adminLinkGrupoMsg', 'Firebase nÃ£o conectado.', 'error');
   await db.child('config/link_grupo').set(url);
   aplicarLinkGrupo(url);
-  setMensagem('adminLinkGrupoMsg', 'Link do grupo salvo e aplicado em todas as páginas.', 'success');
+  setMensagem('adminLinkGrupoMsg', 'Link do grupo salvo e aplicado em todas as pÃ¡ginas.', 'success');
 }
 
 // ------------------------------------------------------------
-// ADMIN — CÓDIGOS DA ROLETA
+// ADMIN â€” CÃ“DIGOS DA ROLETA
 // ------------------------------------------------------------
 function listaCodigosRoleta() {
   const bruto = CONFIG.codigo_roleta || 'ROLETA';
@@ -1311,18 +1243,18 @@ async function salvarCodigosRoleta() {
   const campo = el('adminCodigosRoleta');
   if (!campo || !db) return;
   const lista = campo.value.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
-  if (!lista.length) return setMensagem('adminRoletaMsg', 'Digite pelo menos um código.', 'error');
+  if (!lista.length) return setMensagem('adminRoletaMsg', 'Digite pelo menos um cÃ³digo.', 'error');
   await db.child('config/codigo_roleta').set(lista);
   CONFIG.codigo_roleta = lista;
-  setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
+  setMensagem('adminRoletaMsg', lista.length + ' cÃ³digo(s) salvo(s) e ativo(s) agora.', 'success');
 }
 
-// Códigos de bônus (1 resgate por código por cliente) — cada um com seu valor
+// CÃ³digos de bÃ´nus (1 resgate por cÃ³digo por cliente) â€” cada um com seu valor
 function listaCodigosBonus() {
   const bruto = CONFIG.codigo_bonus || [];
   let arr;
   if (Array.isArray(bruto)) arr = bruto;
-  else if (bruto && typeof bruto === 'object') arr = [bruto]; // objeto único (ex.: {codigo, valor})
+  else if (bruto && typeof bruto === 'object') arr = [bruto]; // objeto Ãºnico (ex.: {codigo, valor})
   else arr = String(bruto).split(/[\n,]+/);
   return arr.map(x => {
     const valorPadrao = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
@@ -1341,17 +1273,17 @@ function renderBonusLista() {
   box.innerHTML = itens.length ? itens.map((x, i) => `<div class="bonus-item">
     <code>${escTexto(x.codigo)}</code>
     <strong>${fmtBRL(x.valor)}</strong>
-    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">×</button>
-  </div>`).join('') : '<p class="empty">Nenhum código cadastrado.</p>';
+    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">Ã—</button>
+  </div>`).join('') : '<p class="empty">Nenhum cÃ³digo cadastrado.</p>';
 }
 function adicionarCodigoBonus() {
   const c = el('adminNovoCodigo'), v = el('adminNovoValor');
   const codigo = String(c?.value || '').trim().toUpperCase();
   const valor = Math.round((Number(v?.value) || 0) * 100) / 100;
-  if (!codigo) return setMensagem('adminBonusMsg', 'Digite o código.', 'error');
+  if (!codigo) return setMensagem('adminBonusMsg', 'Digite o cÃ³digo.', 'error');
   if (!(valor > 0)) return setMensagem('adminBonusMsg', 'Digite um valor maior que zero.', 'error');
   const lista = listaCodigosBonus();
-  if (lista.some(x => x.codigo === codigo)) return setMensagem('adminBonusMsg', 'Esse código já existe.', 'error');
+  if (lista.some(x => x.codigo === codigo)) return setMensagem('adminBonusMsg', 'Esse cÃ³digo jÃ¡ existe.', 'error');
   lista.push({ codigo, valor });
   CONFIG.codigo_bonus = lista;
   if (c) c.value = ''; if (v) v.value = '';
@@ -1373,42 +1305,42 @@ async function carregarCodigosBonus() {
     const s = await db.child('config/codigo_bonus').once('value');
     if (s.exists()) CONFIG.codigo_bonus = s.val();
     renderBonusLista();
-  } catch (e) { console.warn('[Bônus]', e); }
+  } catch (e) { console.warn('[BÃ´nus]', e); }
 }
 async function salvarCodigosBonus() {
   if (!db) return;
   const lista = listaCodigosBonus();
-  if (!lista.length) return setMensagem('adminBonusMsg', 'Adicione pelo menos um código.', 'error');
+  if (!lista.length) return setMensagem('adminBonusMsg', 'Adicione pelo menos um cÃ³digo.', 'error');
   await db.child('config/codigo_bonus').set(lista);
   CONFIG.codigo_bonus = lista;
-  setMensagem('adminBonusMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
+  setMensagem('adminBonusMsg', lista.length + ' cÃ³digo(s) salvo(s) e ativo(s) agora.', 'success');
 }
 async function resgatarBonus(codigo, usuario) {
   const item = listaCodigosBonus().find(x => x.codigo === String(codigo || '').trim().toUpperCase());
-  if (!item) return setMensagem('bonusResult', 'Código inválido.', 'error');
-  if (!db) return setMensagem('bonusResult', 'Firebase não conectado.', 'error');
+  if (!item) return setMensagem('bonusResult', 'CÃ³digo invÃ¡lido.', 'error');
+  if (!db) return setMensagem('bonusResult', 'Firebase nÃ£o conectado.', 'error');
   const jaPegou = await db.child('bonus_resgates/' + usuario.id + '/' + codigo).once('value');
-  if (jaPegou.exists()) return setMensagem('bonusResult', 'Você já resgatou este código.', 'error');
+  if (jaPegou.exists()) return setMensagem('bonusResult', 'VocÃª jÃ¡ resgatou este cÃ³digo.', 'error');
   const valor = item.valor;
   const snap = await db.child('usuarios/' + usuario.id).once('value');
-  if (!snap.exists()) return setMensagem('bonusResult', 'Usuário não encontrado.', 'error');
+  if (!snap.exists()) return setMensagem('bonusResult', 'UsuÃ¡rio nÃ£o encontrado.', 'error');
   const atual = snap.val();
   await db.child('usuarios/' + usuario.id + '/saldo').set((Number(atual.saldo) || 0) + valor);
   await db.child('bonus_resgates/' + usuario.id + '/' + codigo).set(new Date().toISOString());
   const tx = await db.child('transacoes').push({
     usuario_id: usuario.id, usuario_email: usuario.email, usuario_nome: usuario.nome,
     tipo: 'bonus', valor, status: 'aprovada',
-    observacao: `Bônus resgatado — código ${codigo}`, criado_em: new Date().toISOString()
+    observacao: `BÃ´nus resgatado â€” cÃ³digo ${codigo}`, criado_em: new Date().toISOString()
   });
   await db.child('transacoes_usuario/' + usuario.id + '/' + tx.key).set(true);
   usuario.saldo = (Number(atual.saldo) || 0) + valor;
   salvarUsuarioLocal(usuario);
   if (el('saldo')) el('saldo').textContent = Number(usuario.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  setMensagem('bonusResult', `Bônus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
+  setMensagem('bonusResult', `BÃ´nus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
 }
 
 // ------------------------------------------------------------
-// BÔNUS E RODADA
+// BÃ”NUS E RODADA
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
@@ -1427,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', () => {
       e.preventDefault();
       const code = el('bonusCode').value.trim().toUpperCase();
       const u = usuarioLocal();
-      if (!u) return setMensagem('bonusResult', 'Faça login para resgatar.', 'error');
+      if (!u) return setMensagem('bonusResult', 'FaÃ§a login para resgatar.', 'error');
       setMensagem('bonusResult', 'Resgatando...', 'loading');
       await resgatarBonus(code, u);
     });
@@ -1441,11 +1373,11 @@ document.addEventListener('DOMContentLoaded', () => {
       if (spinning) return;
       const digitado = el('wheelCode').value.trim().toUpperCase();
       if (!listaCodigosRoleta().includes(digitado))
-        return setMensagem('wheelResult', 'Código inválido.', 'error');
+        return setMensagem('wheelResult', 'CÃ³digo invÃ¡lido.', 'error');
       spinning = true;
       const btn = el('spinButton'), wheel = el('luckWheel');
-      btn.disabled = true; el('wheelCode').disabled = true; btn.textContent = 'Girando…';
-      setMensagem('wheelResult', 'Aguarde o resultado do giro…', 'loading');
+      btn.disabled = true; el('wheelCode').disabled = true; btn.textContent = 'Girandoâ€¦';
+      setMensagem('wheelResult', 'Aguarde o resultado do giroâ€¦', 'loading');
       const seg = Math.floor(Math.random() * 6);
       const alvo = (360 - (seg * 60 + 30)) % 360;
       rotation += 360 * 5 + (alvo - (rotation % 360) + 360) % 360;
