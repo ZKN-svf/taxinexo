@@ -959,6 +959,11 @@ async function carregarAdmin() {
     const saques = Object.values(saq.val() || {});
     const transacoes = Object.values(tx.val() || {});
     ADMIN_CACHE = { usuarios: us.val() || {}, investimentos: inv.val() || {}, saques: saques, transacoes: transacoes };
+    // Mapa de indicados calculado UMA vez (evita varrer todos os usuários por linha)
+    ADMIN_CACHE.indicados = {};
+    for (const u of usuarios) {
+      if (u && u.indicado_por) ADMIN_CACHE.indicados[u.indicado_por] = (ADMIN_CACHE.indicados[u.indicado_por] || 0) + 1;
+    }
     const soma = (arr, campo) => arr.reduce((a, x) => a + (Number(x[campo]) || 0), 0);
 
     if (el('adminUsuarios')) el('adminUsuarios').textContent = usuarios.length;
@@ -968,10 +973,15 @@ async function carregarAdmin() {
     if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saques.filter(s => s.status === 'pago'), 'valor_liquido'));
 
     if (el('adminSaldoGateway')) {
-      try {
-        const sg = await SigiloPay.consultarSaldo();
-        el('adminSaldoGateway').textContent = sg.sucesso ? fmtBRL(sg.available) : '—';
-      } catch (_) { el('adminSaldoGateway').textContent = '—'; }
+      // Saldo calculado das transações já carregadas — sem ida extra ao Worker
+      let disp = 0;
+      for (const t of transacoes) {
+        const v = Number(t.valor || 0);
+        const st = String(t.status || '').toLowerCase();
+        if (t.tipo === 'deposito' && ['aprovada', 'completed', 'pago'].includes(st)) disp += v;
+        if (t.tipo === 'saque' && ['aprovada', 'completed', 'pago', 'processando'].includes(st)) disp -= v;
+      }
+      el('adminSaldoGateway').textContent = fmtBRL(disp);
     }
 
     const tbody = el('adminRendimentosBody');
@@ -1018,7 +1028,7 @@ function renderAdminUsuarios() {
   if (busca) lista = lista.filter(u => [u.nome, u.email, u.cpf, u.id].some(v => String(v || '').toLowerCase().includes(busca)));
   lista.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
   tbody.innerHTML = lista.length ? lista.slice(0, 300).map(u => {
-    const indicados = Object.values(ADMIN_CACHE.usuarios || {}).filter(x => x && x.indicado_por === u.id).length;
+    const indicados = ADMIN_CACHE.indicados?.[u.id] || 0;
     return `<tr>
       <td><strong>${escTexto(u.nome || '-')}</strong><small>${escTexto(u.celular || '')}</small></td>
       <td>${escTexto(u.email || '-')}<small>CPF ${escTexto(u.cpf || '-')}</small></td>
