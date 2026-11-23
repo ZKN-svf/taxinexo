@@ -204,6 +204,23 @@ function exigirLogin() {
 
 const TAX_API = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/api';
 
+// Preserva o código de indicação de QUALQUER página (ex.: alguém abre
+// cliente.html?ref=CODIGO e é redirecionado para login/cadastro).
+(function capturarRef() {
+  try {
+    const ref = new URLSearchParams(location.search).get('ref');
+    if (ref && /^[A-Za-z0-9_-]{3,24}$/.test(ref)) {
+      sessionStorage.setItem('taxinexo_ref', ref.trim().toUpperCase());
+    }
+  } catch (_) {}
+})();
+function refIndicacao() {
+  try {
+    const daUrl = new URLSearchParams(location.search).get('ref');
+    return String(daUrl || sessionStorage.getItem('taxinexo_ref') || '').trim().toUpperCase();
+  } catch (_) { return ''; }
+}
+
 async function fazerCadastro() {
   const btn = document.querySelector('#cadastroForm button[type="submit"]');
   const original = btn ? btn.innerHTML : '';
@@ -216,7 +233,7 @@ async function fazerCadastro() {
     const pix = el('pix').value.trim();
     const senha = el('senha').value;
     const senha2 = el('confirmarSenha').value;
-    const indicacao = (el('indicacao') && el('indicacao').value.trim().toUpperCase()) || '';
+    const indicacao = (el('indicacao') && el('indicacao').value.trim().toUpperCase()) || refIndicacao();
     const termos = el('termos');
 
     if (nome.split(' ').length < 2) return toast('Digite seu nome completo.');
@@ -307,7 +324,8 @@ async function iniciarDashboard() {
   if (el('codigoIndicacao')) el('codigoIndicacao').textContent = atual.codigo_indicacao || '----';
   const linkInput = el('linkIndicacao');
   if (linkInput && atual.codigo_indicacao) {
-    linkInput.value = location.origin + location.pathname + '?ref=' + encodeURIComponent(atual.codigo_indicacao);
+    // O link de indicação deve apontar para o CADASTRO, nunca para o painel.
+    linkInput.value = location.origin + location.pathname.replace(/[^/]*$/, 'cadastro.html') + '?ref=' + encodeURIComponent(atual.codigo_indicacao);
   }
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
 
