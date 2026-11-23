@@ -102,10 +102,15 @@
           </article>
 
           <article class="admin-code-card">
-            <div class="admin-code-head"><span class="admin-code-ico gold">🎁</span><div><h3>Códigos de bônus</h3><p>Cada código dá 1 resgate por cliente.</p></div></div>
-            <textarea id="adminCodigosBonus" rows="4" placeholder="TAXINEXO&#10;BONUS50"></textarea>
+            <div class="admin-code-head"><span class="admin-code-ico gold">🎁</span><div><h3>Códigos de bônus</h3><p>Cada código tem seu próprio valor e 1 resgate por cliente.</p></div></div>
+            <div id="adminBonusLista" class="bonus-lista"></div>
+            <div class="bonus-add">
+              <input id="adminNovoCodigo" placeholder="CÓDIGO" maxlength="24" style="text-transform:uppercase;flex:1 1 140px;min-width:0">
+              <input id="adminNovoValor" type="number" min="0.01" step="0.01" placeholder="Valor R$" style="flex:0 1 110px;min-width:0">
+              <button class="btn" onclick="adicionarCodigoBonus()">Adicionar</button>
+            </div>
             <div class="row">
-              <button class="btn" onclick="salvarCodigosBonus()">Salvar códigos</button>
+              <button class="btn" onclick="salvarCodigosBonus()">Salvar todos</button>
               <button class="btn secondary" onclick="carregarCodigosBonus()">Recarregar</button>
             </div>
             <p class="result" id="adminBonusMsg" role="status" aria-live="polite"></p>
@@ -132,6 +137,93 @@
             </div>
           </article>
         </div>
+      </section>
+
+      <!-- GERENCIAR USUÁRIOS -->
+      <section class="admin-section">
+        <div class="admin-sec-head"><h2>Gerenciar usuários</h2><small>Criar, remover e ajustar saldo</small></div>
+        <div class="admin-tools-grid">
+          <article class="admin-action">
+            <span class="admin-action-ico green">＋</span>
+            <div style="flex:1 1 100%">
+              <h3>Criar usuário</h3>
+              <div class="form-grid">
+                <input id="novoUsuarioNome" placeholder="Nome completo">
+                <input id="novoUsuarioEmail" placeholder="E-mail" type="email">
+                <input id="novoUsuarioCpf" placeholder="CPF (só números)" maxlength="14">
+                <input id="novoUsuarioCelular" placeholder="Celular" maxlength="15">
+                <input id="novoUsuarioSenha" placeholder="Senha (mín. 8)" type="password">
+              </div>
+              <button class="btn" style="margin-top:10px" onclick="adminCriarUsuario()">Criar usuário</button>
+            </div>
+          </article>
+          <article class="admin-action">
+            <span class="admin-action-ico gold">💰</span>
+            <div style="flex:1 1 100%">
+              <h3>Ajustar saldo</h3>
+              <div class="form-grid">
+                <select id="adminSaldoUsuario"></select>
+                <input id="adminSaldoValor" type="number" min="0.01" step="0.01" placeholder="Valor R$">
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button class="btn" onclick="adminAjustarSaldo(1)">Adicionar saldo</button>
+                <button class="btn danger" onclick="adminAjustarSaldo(-1)">Tirar saldo</button>
+              </div>
+            </div>
+          </article>
+        </div>
+        <article class="admin-table-card">
+          <div class="table-head-row">
+            <h3>Usuários</h3>
+            <input id="adminBuscaUsuario" class="table-search" placeholder="Buscar por nome, e-mail ou CPF..." oninput="renderAdminUsuarios()">
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Usuário</th><th>E-mail</th><th>Saldo</th><th>Total dep.</th><th>Indicados</th><th>Desde</th><th></th></tr></thead>
+              <tbody id="adminUsuariosBody"><tr><td colspan="7" class="empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- INVESTIMENTOS -->
+      <section class="admin-section">
+        <div class="admin-sec-head"><h2>Investimentos</h2><small>Todos os planos dos clientes</small></div>
+        <article class="admin-table-card">
+          <div class="table-head-row">
+            <h3>Lista de investimentos</h3>
+            <input id="adminBuscaInvest" class="table-search" placeholder="Buscar cliente ou plano..." oninput="renderAdminInvestimentos()">
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>Cliente</th><th>Plano</th><th>Aplicado</th><th>Diária</th><th>Progresso</th><th>Recebido</th><th>Status</th></tr></thead>
+              <tbody id="adminInvestBody"><tr><td colspan="7" class="empty">Carregando...</td></tr></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- GATEWAY -->
+      <section class="admin-section">
+        <div class="admin-sec-head"><h2>Gateway de pagamento</h2><small>NexasPay — credenciais do relay na VPS</small></div>
+        <article class="admin-action">
+          <span class="admin-action-ico">🔑</span>
+          <div style="flex:1 1 100%">
+            <h3>Chaves da gateway</h3>
+            <p>As chaves ficam no Firebase e são usadas pelo Worker. A ZKNbet não é afetada — o relay é o mesmo, mas as credenciais são independentes por projeto.</p>
+            <div class="form-grid">
+              <input id="adminGatewayUrl" placeholder="URL do relay (https://.../relay)" style="grid-column:1/-1">
+              <input id="adminGatewayToken" placeholder="Token do relay" style="grid-column:1/-1">
+              <input id="adminGatewayWebhook" placeholder="Token do webhook (opcional)" style="grid-column:1/-1">
+            </div>
+            <div class="row" style="margin-top:10px">
+              <button class="btn" onclick="adminSalvarGateway()">Salvar chaves</button>
+              <button class="btn secondary" onclick="adminCarregarGateway()">Recarregar</button>
+              <button class="btn secondary" onclick="adminTestarGateway()">Testar conexão</button>
+            </div>
+            <p class="result" id="adminGatewayMsg" role="status" aria-live="polite"></p>
+          </div>
+        </article>
       </section>
     </div>
   </main>

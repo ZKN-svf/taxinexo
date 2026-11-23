@@ -958,6 +958,7 @@ async function carregarAdmin() {
     const investimentos = Object.values(inv.val() || {});
     const saques = Object.values(saq.val() || {});
     const transacoes = Object.values(tx.val() || {});
+    ADMIN_CACHE = { usuarios: us.val() || {}, investimentos: inv.val() || {}, saques: saques, transacoes: transacoes };
     const soma = (arr, campo) => arr.reduce((a, x) => a + (Number(x[campo]) || 0), 0);
 
     if (el('adminUsuarios')) el('adminUsuarios').textContent = usuarios.length;
@@ -990,7 +991,161 @@ async function carregarAdmin() {
         <td>${fmtBRL(s.valor_liquido)}</td><td>${fmtData(s.criado_em)}</td><td>${s.status}</td>
       </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;">Nenhum saque.</td></tr>';
     }
+
+    renderAdminUsuarios();
+    renderAdminInvestimentos();
+    renderAdminSelectUsuarios();
   } catch (e) { console.error('[Admin]', e); }
+}
+
+let ADMIN_CACHE = { usuarios: {}, investimentos: {}, saques: [], transacoes: [] };
+
+function renderAdminUsuarios() {
+  const tbody = el('adminUsuariosBody'); if (!tbody) return;
+  const busca = String(el('adminBuscaUsuario')?.value || '').trim().toLowerCase();
+  let lista = Object.entries(ADMIN_CACHE.usuarios || {}).map(([id, u]) => ({ id, ...u }));
+  if (busca) lista = lista.filter(u => [u.nome, u.email, u.cpf, u.id].some(v => String(v || '').toLowerCase().includes(busca)));
+  lista.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
+  tbody.innerHTML = lista.length ? lista.slice(0, 300).map(u => {
+    const indicados = Object.values(ADMIN_CACHE.usuarios || {}).filter(x => x && x.indicado_por === u.id).length;
+    return `<tr>
+      <td><strong>${escTexto(u.nome || '-')}</strong><small>${escTexto(u.celular || '')}</small></td>
+      <td>${escTexto(u.email || '-')}<small>CPF ${escTexto(u.cpf || '-')}</small></td>
+      <td><strong style="color:#ffd54a">${fmtBRL(u.saldo)}</strong></td>
+      <td>${fmtBRL(u.total_depositado)}</td>
+      <td>${indicados}</td>
+      <td>${u.criado_em ? fmtData(u.criado_em) : '-'}</td>
+      <td><button class="mini-btn danger" onclick="adminExcluirUsuario('${u.id}', ${JSON.stringify(escTexto(u.nome || ''))})">Excluir</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';
+}
+
+function renderAdminInvestimentos() {
+  const tbody = el('adminInvestBody'); if (!tbody) return;
+  const busca = String(el('adminBuscaInvest')?.value || '').trim().toLowerCase();
+  let lista = Object.values(ADMIN_CACHE.investimentos || {});
+  if (busca) lista = lista.filter(i => [i.usuario_nome, i.plano_nome, i.usuario_email].some(v => String(v || '').toLowerCase().includes(busca)));
+  lista.sort((a, b) => Number(b.criado_em || 0) - Number(a.criado_em || 0));
+  tbody.innerHTML = lista.length ? lista.slice(0, 300).map(i => {
+    const dias = Number(i.dias_pagos || 0), total = Number(i.duracao_dias || 0);
+    const pct = total > 0 ? Math.min(100, Math.round(dias / total * 100)) : 0;
+    return `<tr>
+      <td><strong>${escTexto(i.usuario_nome || '-')}</strong><small>${escTexto(i.usuario_email || '')}</small></td>
+      <td>${escTexto(i.plano_nome || '-')}</td>
+      <td>${fmtBRL(i.valor_aplicado)}</td>
+      <td>${fmtBRL(i.rendimento_diario)}</td>
+      <td>${dias}/${total} <span class="badge-ok">${pct}%</span></td>
+      <td>${fmtBRL(i.rendimento_pago)}</td>
+      <td><span class="${i.status === 'ativo' ? 'badge-ok' : 'badge-off'}">${escTexto(String(i.status || '-').toUpperCase())}</span></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" class="empty">Nenhum investimento encontrado.</td></tr>';
+}
+
+function renderAdminSelectUsuarios() {
+  const sel = el('adminSaldoUsuario'); if (!sel) return;
+  const atual = sel.value;
+  const lista = Object.entries(ADMIN_CACHE.usuarios || {}).map(([id, u]) => ({ id, nome: u.nome || id, email: u.email || '' }));
+  lista.sort((a, b) => String(a.nome).localeCompare(String(b.nome)));
+  sel.innerHTML = '<option value="">Selecione o usuário...</option>' + lista.map(u =>
+    `<option value="${u.id}">${escTexto(u.nome)} — ${escTexto(u.email)}</option>`).join('');
+  if (atual && lista.some(u => u.id === atual)) sel.value = atual;
+}
+
+async function adminCriarUsuario() {
+  const nome = String(el('novoUsuarioNome')?.value || '').trim();
+  const email = String(el('novoUsuarioEmail')?.value || '').trim().toLowerCase();
+  const cpf = String(el('novoUsuarioCpf')?.value || '').replace(/\D/g, '');
+  const celular = String(el('novoUsuarioCelular')?.value || '').replace(/\D/g, '');
+  const senha = String(el('novoUsuarioSenha')?.value || '');
+  if (nome.split(' ').length < 2) return toast('Digite o nome completo.');
+  if (!validarEmail(email)) return toast('E-mail inválido.');
+  if (!validarCPF(cpf)) return toast('CPF inválido.');
+  if (celular.length < 10) return toast('Celular inválido.');
+  if (senha.length < 8) return toast('Senha mínima de 8 caracteres.');
+  if (!db) return toast('Firebase não conectado.');
+  if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
+  const id = gerarId();
+  const usuario = {
+    id, nome, email, cpf, celular, pix: celular,
+    senha_hash: hashSenha(senha),
+    saldo: 0, saldo_indicacao: 0, investido: 0, rendimentos: 0, bonus: 0, total_depositado: 0,
+    codigo_indicacao: gerarCodigoIndicacao(), indicado_por: null, bonus_recebido: false,
+    criado_em: new Date().toISOString(), role: 'user'
+  };
+  await db.child('usuarios/' + id).set(usuario);
+  await db.child('email_index/' + emailKey(email)).set(id);
+  await db.child('codigo_index/' + usuario.codigo_indicacao).set(id);
+  ['novoUsuarioNome','novoUsuarioEmail','novoUsuarioCpf','novoUsuarioCelular','novoUsuarioSenha'].forEach(i => { if (el(i)) el(i).value = ''; });
+  toast(`Usuário ${nome.split(' ')[0]} criado!`);
+  carregarAdmin();
+}
+
+async function adminAjustarSaldo(sinal) {
+  const uidSel = String(el('adminSaldoUsuario')?.value || '');
+  const valor = Math.round((Number(el('adminSaldoValor')?.value) || 0) * 100) / 100;
+  if (!uidSel) return toast('Selecione um usuário.');
+  if (!(valor > 0)) return toast('Digite um valor maior que zero.');
+  if (!db) return toast('Firebase não conectado.');
+  const snap = await db.child('usuarios/' + uidSel).once('value');
+  if (!snap.exists()) return toast('Usuário não encontrado.');
+  const u = snap.val();
+  const atual = Number(u.saldo || 0);
+  const novo = Math.round((atual + sinal * valor) * 100) / 100;
+  if (novo < 0) return toast('Saldo não pode ficar negativo.');
+  await db.child('usuarios/' + uidSel + '/saldo').set(novo);
+  const tx = await db.child('transacoes').push({
+    usuario_id: uidSel, usuario_email: u.email, usuario_nome: u.nome,
+    tipo: sinal > 0 ? 'bonus' : 'ajuste', valor, status: 'aprovada',
+    observacao: (sinal > 0 ? 'Crédito manual admin' : 'Débito manual admin'), criado_em: new Date().toISOString()
+  });
+  await db.child('transacoes_usuario/' + uidSel + '/' + tx.key).set(true);
+  toast(`${sinal > 0 ? 'Adicionado' : 'Removido'} ${fmtBRL(valor)}. Saldo: ${fmtBRL(novo)}`);
+  if (el('adminSaldoValor')) el('adminSaldoValor').value = '';
+  carregarAdmin();
+}
+
+async function adminExcluirUsuario(id, nome) {
+  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
+  if (!db) return toast('Firebase não conectado.');
+  const snap = await db.child('usuarios/' + id).once('value');
+  const u = snap.val() || {};
+  await db.child('usuarios/' + id).remove();
+  if (u.email) await db.child('email_index/' + emailKey(u.email)).remove();
+  if (u.codigo_indicacao) await db.child('codigo_index/' + u.codigo_indicacao).remove();
+  await db.child('transacoes_usuario/' + id).remove();
+  await db.child('indicados_index/' + id).remove();
+  toast('Usuário excluído.');
+  carregarAdmin();
+}
+
+async function adminCarregarGateway() {
+  if (!db) return;
+  try {
+    const s = await db.child('config/gateway').once('value');
+    const g = s.val() || {};
+    if (el('adminGatewayUrl')) el('adminGatewayUrl').value = g.relayUrl || '';
+    if (el('adminGatewayToken')) el('adminGatewayToken').value = g.relayToken || '';
+    if (el('adminGatewayWebhook')) el('adminGatewayWebhook').value = g.webhookToken || '';
+    setMensagem('adminGatewayMsg', 'Configuração carregada.', 'success');
+  } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
+}
+async function adminSalvarGateway() {
+  if (!db) return;
+  const cfg = {
+    relayUrl: String(el('adminGatewayUrl')?.value || '').trim(),
+    relayToken: String(el('adminGatewayToken')?.value || '').trim(),
+    webhookToken: String(el('adminGatewayWebhook')?.value || '').trim(),
+    atualizado_em: new Date().toISOString()
+  };
+  if (!cfg.relayUrl || !cfg.relayToken) return setMensagem('adminGatewayMsg', 'URL e token do relay são obrigatórios.', 'error');
+  await db.child('config/gateway').set(cfg);
+  setMensagem('adminGatewayMsg', 'Chaves salvas. O Worker já está usando a nova configuração.', 'success');
+}
+async function adminTestarGateway() {
+  try {
+    const r = await SigiloPay.consultarSaldo();
+    setMensagem('adminGatewayMsg', r.sucesso ? `Gateway OK — saldo ${fmtBRL(r.available)}` : 'Gateway não respondeu.', r.sucesso ? 'success' : 'error');
+  } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
 }
 async function processarRendimentos() {
   if (!db) return toast('Firebase não conectado.');
@@ -1137,36 +1292,76 @@ async function salvarCodigosRoleta() {
   setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 
-// Códigos de bônus (1 resgate por código por cliente)
+// Códigos de bônus (1 resgate por código por cliente) — cada um com seu valor
 function listaCodigosBonus() {
-  const bruto = CONFIG.codigo_bonus || 'TAXINEXO';
+  const bruto = CONFIG.codigo_bonus || [];
   const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\n,]+/);
-  return arr.map(x => String(x).trim().toUpperCase()).filter(Boolean);
+  return arr.map(x => {
+    const valorPadrao = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
+    if (x && typeof x === 'object') {
+      return {
+        codigo: String(x.codigo || '').trim().toUpperCase(),
+        valor: Math.round((Number(x.valor) || valorPadrao) * 100) / 100,
+      };
+    }
+    return { codigo: String(x).trim().toUpperCase(), valor: valorPadrao };
+  }).filter(x => x.codigo);
+}
+function renderBonusLista() {
+  const box = el('adminBonusLista'); if (!box) return;
+  const itens = listaCodigosBonus();
+  box.innerHTML = itens.length ? itens.map((x, i) => `<div class="bonus-item">
+    <code>${escTexto(x.codigo)}</code>
+    <strong>${fmtBRL(x.valor)}</strong>
+    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">×</button>
+  </div>`).join('') : '<p class="empty">Nenhum código cadastrado.</p>';
+}
+function adicionarCodigoBonus() {
+  const c = el('adminNovoCodigo'), v = el('adminNovoValor');
+  const codigo = String(c?.value || '').trim().toUpperCase();
+  const valor = Math.round((Number(v?.value) || 0) * 100) / 100;
+  if (!codigo) return setMensagem('adminBonusMsg', 'Digite o código.', 'error');
+  if (!(valor > 0)) return setMensagem('adminBonusMsg', 'Digite um valor maior que zero.', 'error');
+  const lista = listaCodigosBonus();
+  if (lista.some(x => x.codigo === codigo)) return setMensagem('adminBonusMsg', 'Esse código já existe.', 'error');
+  lista.push({ codigo, valor });
+  CONFIG.codigo_bonus = lista;
+  if (c) c.value = ''; if (v) v.value = '';
+  renderBonusLista();
+  setMensagem('adminBonusMsg', `${codigo} adicionado (${fmtBRL(valor)}). Clique em "Salvar todos".`, 'success');
+}
+function removerCodigoBonus(i) {
+  const lista = listaCodigosBonus();
+  if (i < 0 || i >= lista.length) return;
+  const codigo = lista[i].codigo;
+  lista.splice(i, 1);
+  CONFIG.codigo_bonus = lista;
+  renderBonusLista();
+  setMensagem('adminBonusMsg', `${codigo} removido da lista. Clique em "Salvar todos".`, 'success');
 }
 async function carregarCodigosBonus() {
   if (!db) return;
   try {
     const s = await db.child('config/codigo_bonus').once('value');
     if (s.exists()) CONFIG.codigo_bonus = s.val();
-    const campo = el('adminCodigosBonus');
-    if (campo) campo.value = listaCodigosBonus().join('\n');
+    renderBonusLista();
   } catch (e) { console.warn('[Bônus]', e); }
 }
 async function salvarCodigosBonus() {
-  const campo = el('adminCodigosBonus');
-  if (!campo || !db) return;
-  const lista = campo.value.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
-  if (!lista.length) return setMensagem('adminBonusMsg', 'Digite pelo menos um código.', 'error');
+  if (!db) return;
+  const lista = listaCodigosBonus();
+  if (!lista.length) return setMensagem('adminBonusMsg', 'Adicione pelo menos um código.', 'error');
   await db.child('config/codigo_bonus').set(lista);
   CONFIG.codigo_bonus = lista;
   setMensagem('adminBonusMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 async function resgatarBonus(codigo, usuario) {
-  if (!listaCodigosBonus().includes(codigo)) return setMensagem('bonusResult', 'Código inválido.', 'error');
+  const item = listaCodigosBonus().find(x => x.codigo === String(codigo || '').trim().toUpperCase());
+  if (!item) return setMensagem('bonusResult', 'Código inválido.', 'error');
   if (!db) return setMensagem('bonusResult', 'Firebase não conectado.', 'error');
   const jaPegou = await db.child('bonus_resgates/' + usuario.id + '/' + codigo).once('value');
   if (jaPegou.exists()) return setMensagem('bonusResult', 'Você já resgatou este código.', 'error');
-  const valor = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
+  const valor = item.valor;
   const snap = await db.child('usuarios/' + usuario.id).once('value');
   if (!snap.exists()) return setMensagem('bonusResult', 'Usuário não encontrado.', 'error');
   const atual = snap.val();
@@ -1191,6 +1386,10 @@ document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
   carregarCodigosRoleta();
   carregarLinkGrupo();
+  if (location.pathname.includes('admin.html')) {
+    carregarCodigosBonus();
+    adminCarregarGateway();
+  }
 
   if (location.pathname.includes('cliente.html')) iniciarDashboard();
 
