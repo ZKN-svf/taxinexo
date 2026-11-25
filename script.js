@@ -207,6 +207,13 @@ function toast(msg) {
   } catch (_) { alert(msg); }
 }
 
+// Token do Cloudflare Turnstile gerado pelo widget da página
+function tokenTurnstile(action) {
+  const widget = document.querySelector('.cf-turnstile[data-action="' + action + '"]');
+  const campo = widget && widget.querySelector('input[name="cf-turnstile-response"]');
+  return campo ? String(campo.value || '') : '';
+}
+
 // ------------------------------------------------------------
 // AUTENTICAÇÃO
 // ------------------------------------------------------------
@@ -279,12 +286,15 @@ async function fazerCadastro() {
 
     if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
 
+    const turnstileToken = tokenTurnstile('register');
+    if (!turnstileToken) return toast('Aguarde a verificação de segurança.');
+
     // Backend cria a conta e resolve o indicador — o frontend não decide o vínculo.
     const resp = await fetch(TAX_API + '/cadastro', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome, email, cpf: cpf.replace(/\D/g, ''), celular: celular.replace(/\D/g, ''),
-        pix, senha_hash: hashSenha(senha), indicacao,
+        pix, senha_hash: hashSenha(senha), indicacao, turnstileToken,
       }),
     });
     const cr = await resp.json().catch(() => ({}));
@@ -315,20 +325,48 @@ async function fazerLogin() {
   try {
     const email = el('email').value.trim().toLowerCase();
     const senha = el('senha').value;
-    if (!db) return toast('Firebase não conectado.');
-    const usuario = await buscarUsuarioPorEmail(email);
-    if (!usuario) return toast('E-mail não encontrado.');
-    if (usuario.senha_hash !== hashSenha(senha)) return toast('Senha incorreta.');
-    salvarUsuarioLocal(usuario);
+    const turnstileToken = tokenTurnstile('login');
+    if (!turnstileToken) return toast('Aguarde a verificação de segurança.');
+
+    const resp = await fetch(TAX_API + '/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, senha_hash: hashSenha(senha), turnstileToken }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) return toast(r.message || 'Não foi possível entrar.');
+
+    salvarUsuarioLocal(r.user);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
     location.href = 'cliente.html';
   } catch (e) {
     console.error(e);
-    toast('Erro ao fazer login.');
+    toast('Erro ao fazer login: ' + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = original; }
   }
 }
+
+// Login/cadastro com Google — o backend valida o id_token e cria/vincula a conta
+async function entrarComGoogle(response) {
+  if (!response || !response.credential) return toast('Falha no Google.');
+  toast('Entrando...\nValidando conta Google');
+  try {
+    const resp = await fetch(TAX_API + '/auth/google', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential: response.credential, ref: refIndicacao() }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) return toast(r.message || 'Erro no login com Google.');
+    salvarUsuarioLocal(r.user);
+    localStorage.setItem('token_taxinexo', 'google_' + Date.now());
+    toast('Bem-vindo!');
+    setTimeout(() => { location.href = 'cliente.html'; }, 600);
+  } catch (e) {
+    toast('Erro ao entrar com Google: ' + e.message);
+  }
+}
+window.handleGoogleLogin = (response) => entrarComGoogle(response);
+window.handleGoogleRegister = (response) => entrarComGoogle(response);
 
 // ------------------------------------------------------------
 // DASHBOARD

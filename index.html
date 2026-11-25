@@ -6,6 +6,8 @@
   <title>Taxinexo | Entrar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="auth-page">
   <div id="taxCarousel" class="tax-carousel hidden" aria-label="Destaques"></div>
@@ -16,8 +18,18 @@
       <form id="loginForm" onsubmit="event.preventDefault(); fazerLogin()">
         <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
         <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="current-password" placeholder="Sua senha" aria-label="Sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="login"></div>
         <button class="primary" type="submit">Entrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
+      <div class="google-area">
+        <div class="google-sep"><span>ou entre com</span></div>
+        <div id="g_id_onload"
+             data-client_id="643374147618-8cfpb3gkfbl2pi7n4obujbpfdo6haikt.apps.googleusercontent.com"
+             data-callback="handleGoogleLogin"
+             data-auto_prompt="false"></div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
+             data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
+      </div>
       <p class="link">Não tem conta? <a href="cadastro.html">Cadastre-se</a></p>
       <p class="link" style="margin-top:8px;font-size:12px;"><a href="admin.html">Acesso administrativo</a></p>
     </section>

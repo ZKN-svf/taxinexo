@@ -223,6 +223,22 @@ h1,h2,h3,h4{font-family:var(--display);letter-spacing:-.02em}
 .auth-card .link a{color:var(--cyan);font-weight:700;margin-left:6px}
 .auth-card .link a:hover{text-decoration:underline}
 
+/* Verificação Cloudflare Turnstile + botão Google */
+.cf-turnstile{
+  width:100%;max-width:302px;margin:14px auto 16px;
+  min-height:65px;display:flex;justify-content:center;
+}
+.cf-turnstile iframe{max-width:100%!important}
+.google-area{margin:18px 0 2px}
+.google-sep{
+  display:flex;align-items:center;gap:12px;margin:0 0 14px;
+  color:var(--muted);font-size:11px;letter-spacing:.06em;
+}
+.google-sep::before,.google-sep::after{
+  content:'';flex:1;height:1px;background:rgba(125,180,255,.18);
+}
+.g_id_signin{display:block;margin:0 auto;max-width:100%}
+
 /* Campos */
 .input-wrap{
   display:flex;align-items:center;gap:12px;

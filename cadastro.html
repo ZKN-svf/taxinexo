@@ -6,6 +6,8 @@
   <title>Taxinexo | Cadastrar-se</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body class="auth-page">
   <main class="auth-shell">
@@ -23,8 +25,18 @@
         <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita sua senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')"></button></div>
         <label class="input-wrap"><span class="ico ico-star" aria-hidden="true"></span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0;color:var(--muted);"><input type="checkbox" id="termos" required> Li e aceito os <a href="termos.html">termos de uso</a>.</label>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="register"></div>
         <button class="primary" type="submit">Cadastrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
+      <div class="google-area">
+        <div class="google-sep"><span>ou cadastre-se com</span></div>
+        <div id="g_id_onload"
+             data-client_id="643374147618-8cfpb3gkfbl2pi7n4obujbpfdo6haikt.apps.googleusercontent.com"
+             data-callback="handleGoogleRegister"
+             data-auto_prompt="false"></div>
+        <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
+             data-text="signup_with" data-shape="rectangular" data-logo_alignment="left"></div>
+      </div>
       <p class="link">Já tem conta? <a href="index.html">Entrar</a></p>
     </section>
     <footer class="auth-footer" role="img" aria-label="Seu futuro começa agora"></footer>
