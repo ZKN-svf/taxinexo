@@ -248,7 +248,7 @@ async function fazerCadastro() {
     if (!validarCPF(cpf)) return toast('CPF inválido!');
     if (celular.replace(/\D/g, '').length < 10) return toast('Celular inválido!');
     if (!validarEmail(email)) return toast('E-mail inválido!');
-    if (pix.length < 3) return toast('Chave Pix inválida!');
+    if (typeof SigiloPay !== 'undefined' && !SigiloPay.validarChavePix(pix).valida) return toast('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
     if (senha.length < 8) return toast('Senha mínimo 8 caracteres.');
     if (!/[A-Z]/.test(senha)) return toast('A senha precisa ter MAIÚSCULA.');
     if (!/[a-z]/.test(senha)) return toast('A senha precisa ter minúscula.');
@@ -639,6 +639,15 @@ function configurarCarteira() {
   const sf = el('saqueForm');
   if (sf) {
     el('saqueValor').addEventListener('input', atualizarTaxa);
+    const pixCampo = el('saquePix');
+    if (pixCampo) pixCampo.addEventListener('input', () => {
+      const hint = el('saquePixTipo');
+      if (!hint) return;
+      if (!pixCampo.value.trim()) { hint.textContent = ''; hint.className = 'pix-tipo'; return; }
+      const r = SigiloPay.validarChavePix(pixCampo.value);
+      hint.textContent = r.valida ? 'Tipo detectado: ' + r.descricao : 'Chave inválida';
+      hint.className = 'pix-tipo ' + (r.valida ? 'ok' : 'erro');
+    });
     sf.addEventListener('submit', (e) => { e.preventDefault(); confirmarSaque(e); });
   }
   document.querySelectorAll('.money-dialog').forEach(d => {
@@ -825,7 +834,8 @@ async function confirmarSaque(ev) {
   if (controle.bloqueado) return toast(controle.mensagem);
   if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h às ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
   if (!(valor >= CONFIG.saqueMinimo)) return toast(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
-  if (pix.length < 4) return toast('Digite uma chave Pix válida.');
+  const chavePix = SigiloPay.validarChavePix(pix);
+  if (!chavePix.valida) return toast('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
   const feitos = await contarSaquesHoje(u.id);
   if (feitos >= CONFIG.saquesPorDia) return toast(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
   if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);

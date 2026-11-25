@@ -123,14 +123,54 @@ async function consultarSaldo() {
   }
 }
 
+// Valida dígitos verificadores para distinguir CPF/CNPJ de telefone
+function cpfValido(valor) {
+  const c = String(valor).replace(/\D/g, '');
+  if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+  let s = 0;
+  for (let i = 0; i < 9; i++) s += Number(c[i]) * (10 - i);
+  let d = (s * 10) % 11; if (d === 10) d = 0;
+  if (d !== Number(c[9])) return false;
+  s = 0;
+  for (let i = 0; i < 10; i++) s += Number(c[i]) * (11 - i);
+  d = (s * 10) % 11; if (d === 10) d = 0;
+  return d === Number(c[10]);
+}
+
+function cnpjValido(valor) {
+  const c = String(valor).replace(/\D/g, '');
+  if (c.length !== 14 || /^(\d)\1{13}$/.test(c)) return false;
+  const calc = (pesos) => {
+    let s = 0;
+    for (let i = 0; i < pesos.length; i++) s += Number(c[i]) * pesos[i];
+    const r = s % 11;
+    return r < 2 ? 0 : 11 - r;
+  };
+  return calc([5,4,3,2,9,8,7,6,5,4,3,2]) === Number(c[12]) &&
+         calc([6,5,4,3,2,9,8,7,6,5,4,3,2]) === Number(c[13]);
+}
+
+// Chaves Pix aceitas: CPF, CNPJ, e-mail, telefone e chave aleatória (EVP).
+// Retorna o tipo no formato esperado pelo Worker/Nexas.
+function validarChavePix(chave) {
+  const raw = String(chave || '').trim();
+  const limpa = raw.replace(/\D/g, '');
+  if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+    return { valida: true, tipo: 'email', descricao: 'E-mail' };
+  }
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw)) {
+    return { valida: true, tipo: 'random', descricao: 'Chave aleatória' };
+  }
+  if (/^\d+$/.test(limpa)) {
+    if (limpa.length === 11 && cpfValido(limpa)) return { valida: true, tipo: 'CPF', descricao: 'CPF' };
+    if (limpa.length === 14 && cnpjValido(limpa)) return { valida: true, tipo: 'CNPJ', descricao: 'CNPJ' };
+    if (limpa.length >= 10 && limpa.length <= 13) return { valida: true, tipo: 'phone', descricao: 'Celular/telefone' };
+  }
+  return { valida: false, tipo: '', descricao: '' };
+}
+
 function detectarTipoPix(chave) {
-  const limpa = String(chave).replace(/\D/g, '');
-  if (limpa.length === 11 && /^\d+$/.test(limpa)) return 'CPF';
-  if (limpa.length === 14 && /^\d+$/.test(limpa)) return 'CNPJ';
-  if (chave.includes('@')) return 'email';
-  if (limpa.length === 11 || limpa.length === 13) return 'phone';
-  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(chave)) return 'random';
-  return 'email';
+  return validarChavePix(chave).tipo || 'email';
 }
 
 window.SigiloPay = {
@@ -140,5 +180,8 @@ window.SigiloPay = {
   consultarSaldo,
   gerarIdentifier,
   detectarTipoPix,
+  validarChavePix,
+  cpfValido,
+  cnpjValido,
   CONFIG: SIGILOPAY_CONFIG
 };

@@ -68,6 +68,9 @@ button:disabled{cursor:wait;opacity:.65}
 
 .min-notice{margin:-8px 0 16px;padding:8px 12px;border:1px solid #ffc94d66;border-radius:10px;background:#ffc94d14;color:#ffd978;font-size:14px}
 .min-notice strong{color:#fff}
+.pix-tipo{display:block;margin:-6px 0 12px;font-size:13px;color:var(--muted)}
+.pix-tipo.ok{color:#4dffc3}
+.pix-tipo.erro{color:#ff8a8a}
 
 /* ===== Funcionalidades (Firebase) ===== */
 .sair-btn{margin-left:12px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--cyan);font-size:12px;font-weight:700}
