@@ -1,0 +1,593 @@
+================================================================================
+DIUTURNBANNER — SISTEMA DE CARROSSEL DE BANNERS
+Documento de implementação para reaproveitamento em outro projeto
+================================================================================
+
+Este guia descreve um sistema completo de banners gerenciados por painel admin:
+imagens enviadas para armazenamento de objetos, metadados em banco de dados,
+e um carrossel no frontend com autoplay, arraste, clique e indicadores.
+
+TUDO que está entre [ COLCHETES ] é placeholder. Substitua pelos valores do
+seu projeto antes de usar. Nenhum dado de projeto anterior está incluído.
+
+--------------------------------------------------------------------------------
+1. ARQUITETURA
+--------------------------------------------------------------------------------
+
+Fluxo:
+
+  Painel administrativo
+     |  POST FormData (imagem + link + tipo) com header Authorization
+     v
+  Worker / API serverless
+     |  salva a imagem no bucket de objetos (R2/S3) -> URL pública
+     |  salva os metadados no banco (Firebase Realtime DB)
+     v
+  GET público -> /api/marketing/banners
+     v
+  JavaScript do frontend monta os slides dentro de #taxCarousel
+
+Variáveis que você precisa definir:
+
+  [URL_DO_SITE] .............. domínio onde o carrossel vai aparecer
+  [URL_DA_API] ............... base da sua API, ex.: https://api.seuservico.com/api
+  [FIREBASE_BASE] ............ https://[projeto].firebaseio.com/[raiz]
+  [R2_PUBLIC_URL] ............ URL pública do bucket, ex.: https://pub-xxx.r2.dev
+  [NOME_DO_BUCKET] ........... nome do bucket de imagens
+  [SEU_TOKEN_ADMIN] .......... token secreto do painel (NUNCA no frontend)
+
+Estrutura de dados no banco:
+
+  /[raiz]/marketing_banners/{id}
+      {
+        "id": "banner_xxx",
+        "image_url": "https://.../banner_...",
+        "link": "https://..." ou "",
+        "type": "carousel" ou "popup",
+        "active": true,
+        "created_at": 1234567890
+      }
+
+  /[raiz]/config/admin
+      { "senha": "...", "token": "..." }
+
+Segurança: senha e token do admin ficam no banco, nunca no JavaScript do
+frontend. O frontend apenas lê a config para enviar o token nas requisições;
+a validação real acontece na API.
+
+--------------------------------------------------------------------------------
+2. HTML — ONDE O CARROSSEL APARECE
+--------------------------------------------------------------------------------
+
+Coloque o contêiner no local exato onde o banner deve aparecer:
+
+    <div id="taxCarousel" class="tax-carousel hidden" aria-label="Destaques"></div>
+
+A classe "hidden" mantém o elemento oculto (display:none) até que o JavaScript
+busque os banners e confirme que existe pelo menos um. Se não houver banners,
+o bloco continua escondido — não sobra um retângulo vazio na página.
+
+Inclua o script do carrossel no fim do <body>:
+
+    <script src="carrossel.js"></script>
+
+Se quiser mais de um ponto de exibição (home, painel, pop-up), use o campo
+"type" cadastrado no admin para filtrar: "carousel" ou "popup".
+
+--------------------------------------------------------------------------------
+3. CSS — COPIAR E COLAR
+--------------------------------------------------------------------------------
+
+Ajuste as cores ao seu tema. O aspect-ratio deve ser o da sua imagem:
+LARGURA / ALTURA. Meça o arquivo antes (ex.: 1000x250 -> 1000/250).
+
+/* ===== CARROSSEL DE BANNERS ===== */
+.tax-carousel{position:relative;width:100%;aspect-ratio:[LARGURA]/[ALTURA];min-height:90px;margin:0 0 20px;border-radius:20px;overflow:hidden;border:1px solid var(--cyan);background:#04122b;box-shadow:0 10px 30px rgba(0,0,0,.35);touch-action:pan-y}
+.tax-carousel-track{display:flex;width:100%;height:100%;transition:transform .5s ease;cursor:grab}
+.tax-carousel-track:active{cursor:grabbing}
+.tax-carousel-slide{flex:0 0 100%;height:100%;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.tax-carousel-slide img{width:100%;height:100%;object-fit:cover;display:block;user-select:none;-webkit-user-drag:none}
+.tax-carousel-dots{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);display:flex;gap:7px;z-index:2}
+.tax-carousel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.45);cursor:pointer;transition:.2s}
+.tax-carousel-dots button.on{width:22px;border-radius:99px;background:var(--cyan)}
+@media(max-width:620px){.tax-carousel{border-radius:14px}}
+
+.hidden{display:none!important}
+
+Por que aspect-ratio e não height fixo:
+  Usar a mesma proporção da imagem faz o carrossel ocupar exatamente o espaço
+  que um banner estático ocuparia, em qualquer largura de tela. O min-height
+  impede que ele fique pequeno demais em telas estreitas.
+
+--------------------------------------------------------------------------------
+4. JAVASCRIPT DO FRONTEND — carrossel.js (arquivo completo)
+--------------------------------------------------------------------------------
+
+Troque apenas a constante API. O resto pode ser usado como está.
+
+// ============================================================
+// CARROSSEL DE BANNERS — autoplay, arraste, clique e indicadores
+// ============================================================
+(function () {
+  const API = '[URL_DA_API]';   // ex.: https://api.seuservico.com/api
+
+  // Aceita apenas http(s) ou caminho relativo — bloqueia javascript: e data:
+  function linkSeguro(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    if (/^https?:\/\//i.test(s)) return s;
+    if (/^\/[^\/]/.test(s)) return s;
+    return '';
+  }
+
+  async function iniciar() {
+    const box = document.getElementById('taxCarousel');
+    if (!box) return;
+    let banners = [];
+    try {
+      const r = await fetch(API + '/marketing/banners');
+      const j = await r.json();
+      banners = (j.banners || []).filter(b => b.type === 'carousel' && b.image_url);
+    } catch (_) { return; }
+
+    if (!banners.length) {
+      box.innerHTML = '';
+      box.classList.add('hidden');
+      return;
+    }
+    box.classList.remove('hidden');
+    box.innerHTML = '';
+
+    const track = document.createElement('div');
+    track.className = 'tax-carousel-track';
+    box.appendChild(track);
+
+    let moved = false;
+    banners.forEach(b => {
+      const slide = document.createElement('div');
+      slide.className = 'tax-carousel-slide';
+      const href = linkSeguro(b.link);
+      if (href) {
+        slide.setAttribute('role', 'link');
+        slide.setAttribute('tabindex', '0');
+        slide.title = 'Clique para abrir';
+      }
+      slide.onclick = () => { if (!moved && href) location.href = href; };
+      slide.onkeydown = (e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && href) { e.preventDefault(); location.href = href; }
+      };
+      const img = document.createElement('img');
+      img.src = b.image_url;
+      img.alt = 'Destaque';
+      img.draggable = false;
+      slide.appendChild(img);
+      track.appendChild(slide);
+    });
+
+    if (banners.length < 2) return;   // um slide só não precisa de dots/autoplay
+
+    let idx = 0, timer = null, startX = 0, dx = 0, dragging = false;
+
+    function ir(i) {
+      idx = (i + banners.length) % banners.length;
+      track.style.transition = 'transform .5s ease';
+      track.style.transform = 'translateX(-' + (idx * 100) + '%)';
+      pontos();
+    }
+    function parar() { if (timer) { clearInterval(timer); timer = null; } }
+    function iniciarAuto() { parar(); timer = setInterval(() => ir(idx + 1), 8000); }
+
+    const dots = document.createElement('div');
+    dots.className = 'tax-carousel-dots';
+    box.appendChild(dots);
+    banners.forEach((_, i) => {
+      const d = document.createElement('button');
+      d.type = 'button';
+      d.setAttribute('aria-label', 'Ir para banner ' + (i + 1));
+      d.onclick = () => { parar(); ir(i); iniciarAuto(); };
+      dots.appendChild(d);
+    });
+    function pontos() {
+      [...dots.children].forEach((d, i) => d.classList.toggle('on', i === idx));
+    }
+
+    track.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      dragging = true; moved = false; startX = e.clientX; dx = 0;
+      parar(); track.style.transition = 'none';
+      try { track.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    track.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      dx = e.clientX - startX;
+      if (Math.abs(dx) > 5) moved = true;
+      track.style.transform = 'translateX(calc(-' + (idx * 100) + '% + ' + dx + 'px))';
+    });
+    function soltar() {
+      if (!dragging) return;
+      dragging = false;
+      const limite = Math.min(60, track.offsetWidth * 0.15);
+      if (dx <= -limite) ir(idx + 1);
+      else if (dx >= limite) ir(idx - 1);
+      else ir(idx);
+      setTimeout(() => { moved = false; }, 0);
+      iniciarAuto();
+    }
+    track.addEventListener('pointerup', soltar);
+    track.addEventListener('pointercancel', soltar);
+    pontos();
+    iniciarAuto();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
+  else iniciar();
+  window.recarregarCarrossel = iniciar;   // chamar após upload/exclusão no admin
+})();
+
+--------------------------------------------------------------------------------
+5. BACKEND — WORKER / API SERVERLESS
+--------------------------------------------------------------------------------
+
+5.1 Configuração (wrangler.toml, se usar Cloudflare Workers)
+
+name = "[NOME_DO_WORKER]"
+main = "src/index.js"
+compatibility_date = "2026-11-22"
+
+[vars]
+FIREBASE_BASE = "[FIREBASE_BASE]"
+R2_PUBLIC_URL = "[R2_PUBLIC_URL]"
+
+[[r2_buckets]]
+binding = "BANNERS"
+bucket_name = "[NOME_DO_BUCKET]"
+
+Secret (fora do arquivo):
+  npx wrangler secret put ADMIN_PANEL_TOKEN
+
+5.2 CORS — PONTO CRÍTICO
+
+O navegador envia uma requisição OPTIONS (preflight) antes de POST/DELETE
+com o header Authorization. Se o preflight não liberar o header e o método,
+a chamada falha no navegador com "Failed to fetch" (mesmo funcionando no curl).
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Relay-Token',
+};
+
+export default {
+  async fetch(request, env) {
+    if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
+    ...
+  }
+}
+
+Nunca omita DELETE nem Authorization da lista.
+
+5.3 Rotas (dentro de fetch)
+
+import { listarBanners, uploadBanner, atualizarBanner, deletarBanner } from './marketing.js';
+
+if (path === '/api/marketing/banners' && request.method === 'GET') return listarBanners();
+
+if (path === '/api/admin/marketing/upload' && request.method === 'POST') return uploadBanner(request, env);
+
+if (path === '/api/admin/marketing/list' && request.method === 'GET') {
+  const tok = String(request.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  const cfg = await fb(env, '/config/admin');
+  const esperado = String(cfg?.token || env.ADMIN_PANEL_TOKEN || '').trim();
+  if (!esperado || tok !== esperado) return json({ ok: false, message: 'Não autorizado.' }, 401);
+  return listarBanners();
+}
+
+const del = path.match(/^\/api\/admin\/marketing\/delete\/([\w-]+)$/);
+if (del && request.method === 'DELETE') return deletarBanner(request, del[1], env);
+
+const edit = path.match(/^\/api\/admin\/marketing\/([\w-]+)$/);
+if (edit && request.method === 'PATCH') return atualizarBanner(request, edit[1], await request.json().catch(() => ({})), env);
+
+5.4 src/marketing.js (arquivo completo)
+
+const BASE = '[FIREBASE_BASE]';
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization',
+  'Access-Control-Allow-Methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
+};
+const json = (d, s = 200) => new Response(JSON.stringify(d), {
+  status: s, headers: { ...CORS, 'Content-Type': 'application/json; charset=utf-8' }
+});
+
+// Só http(s) ou caminho relativo — bloqueia javascript: e data:
+export function linkSeguro(raw) {
+  const s = String(raw || '').trim();
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  if (/^\/[^\/]/.test(s)) return s;
+  return null;
+}
+
+async function fb(caminho, opts = {}) {
+  const r = await fetch(BASE + caminho + '.json', opts);
+  const t = await r.text();
+  let j; try { j = JSON.parse(t); } catch (_) { j = t; }
+  return j;
+}
+
+export async function listarBanners() {
+  const banners = await fb('/marketing_banners') || {};
+  const lista = Object.entries(banners)
+    .map(([id, b]) => ({ id, ...b }))
+    .filter(b => b.active !== false);
+  lista.sort((a, b) => Number(b.created_at || 0) - Number(a.created_at || 0));
+  return json({ ok: true, banners: lista });
+}
+
+async function exigeAdmin(request, env) {
+  const token = String(request.headers.get('Authorization') || '')
+    .replace(/^Bearer\s+/i, '').trim();
+  if (!token) return false;
+  const cfg = await fb('/config/admin');
+  const esperado = String(cfg?.token || env.ADMIN_PANEL_TOKEN || '').trim();
+  return !!esperado && token === esperado;
+}
+
+export async function uploadBanner(request, env) {
+  if (!(await exigeAdmin(request, env))) return json({ ok: false, message: 'Não autorizado.' }, 401);
+  const form = await request.formData().catch(() => null);
+  const file = form?.get('image');
+  const tipos = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+  if (!file || typeof file.arrayBuffer !== 'function' || !tipos.includes(file.type)) {
+    return json({ ok: false, message: 'Envie uma imagem PNG, JPG, WEBP ou GIF.' }, 400);
+  }
+  if (file.size > 5 * 1024 * 1024) return json({ ok: false, message: 'Imagem muito grande (máx 5 MB).' }, 400);
+  const link = linkSeguro(form.get('link'));
+  if (link === null) return json({ ok: false, message: 'Link inválido (use http(s):// ou /caminho).' }, 400);
+  const tipo = String(form.get('type') || 'carousel') === 'popup' ? 'popup' : 'carousel';
+  if (!env.BANNERS || !env.R2_PUBLIC_URL) return json({ ok: false, message: 'Armazenamento não configurado.' }, 500);
+
+  const key = 'banner_' + Date.now() + '_' + String(file.name || 'banner.png').replace(/[^a-zA-Z0-9.]/g, '_');
+  await env.BANNERS.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+  const image_url = String(env.R2_PUBLIC_URL).replace(/\/+$/, '') + '/' + key;
+  const id = 'banner_' + Date.now().toString(36);
+  await fb('/marketing_banners/' + id, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, image_url, link, type: tipo, active: true, created_at: Date.now() }),
+  });
+  return json({ ok: true, id, image_url });
+}
+
+export async function atualizarBanner(request, id, body, env) {
+  if (!(await exigeAdmin(request, env))) return json({ ok: false, message: 'Não autorizado.' }, 401);
+  const atual = await fb('/marketing_banners/' + id);
+  if (!atual) return json({ ok: false, message: 'Banner não encontrado.' }, 404);
+  const patch = {};
+  if (body.link !== undefined) {
+    const link = linkSeguro(body.link);
+    if (link === null) return json({ ok: false, message: 'Link inválido.' }, 400);
+    patch.link = link;
+  }
+  if (body.type !== undefined) patch.type = String(body.type) === 'popup' ? 'popup' : 'carousel';
+  if (body.active !== undefined) patch.active = !!body.active;
+  await fb('/marketing_banners/' + id, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+  });
+  return json({ ok: true, ...patch });
+}
+
+export async function deletarBanner(request, id, env) {
+  if (!(await exigeAdmin(request, env))) return json({ ok: false, message: 'Não autorizado.' }, 401);
+  await fb('/marketing_banners/' + id, { method: 'DELETE' });
+  return json({ ok: true });
+}
+
+Deploy:
+  cd [PASTA_DA_API]
+  npx wrangler deploy
+
+--------------------------------------------------------------------------------
+6. PAINEL ADMINISTRATIVO
+--------------------------------------------------------------------------------
+
+6.1 HTML da seção
+
+<section class="admin-section">
+  <div class="admin-sec-head"><h2>Banners do site</h2></div>
+  <article class="admin-action">
+    <div style="flex:1 1 100%">
+      <h3>Adicionar banner</h3>
+      <div class="form-grid">
+        <input id="bannerArquivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+        <input id="bannerLink" placeholder="Link (https://...) — opcional">
+        <select id="bannerTipo">
+          <option value="carousel">Carrossel</option>
+          <option value="popup">Popup</option>
+        </select>
+      </div>
+      <button onclick="adminEnviarBanner()">Enviar banner</button>
+      <p id="adminBannerMsg"></p>
+    </div>
+  </article>
+  <table>
+    <thead><tr><th>Imagem</th><th>Tipo</th><th>Link</th><th></th></tr></thead>
+    <tbody id="adminBannersBody"><tr><td colspan="4">Carregando...</td></tr></tbody>
+  </table>
+</section>
+
+6.2 JavaScript (no script do painel)
+
+let ADMIN_CONFIG = { senha: '', token: '' };
+async function carregarConfigAdmin() {
+  try {
+    const r = await fetch('[FIREBASE_BASE]/config/admin.json');
+    const j = await r.json();
+    if (j && typeof j === 'object') ADMIN_CONFIG = { senha: String(j.senha || ''), token: String(j.token || '') };
+  } catch (_) {}
+}
+
+async function adminCarregarBanners() {
+  const tbody = document.getElementById('adminBannersBody'); if (!tbody) return;
+  try {
+    const r = await fetch(API + '/admin/marketing/list', { headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') } });
+    const j = await r.json();
+    const lista = j.banners || [];
+    tbody.innerHTML = lista.length ? lista.map(b => `<tr>
+      <td><img src="${escTexto(b.image_url)}" style="max-width:120px;max-height:60px"></td>
+      <td>${escTexto(b.type)}</td>
+      <td>${b.link ? escTexto(b.link) : '-'}</td>
+      <td>
+        <button onclick="adminEditarBannerLink('${escTexto(b.id)}')">Editar link</button>
+        <button onclick="adminExcluirBanner('${escTexto(b.id)}')">Excluir</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="4">Nenhum banner cadastrado.</td></tr>';
+  } catch (e) { tbody.innerHTML = '<tr><td colspan="4">Erro ao carregar.</td></tr>'; }
+}
+
+async function adminEnviarBanner() {
+  const arquivo = document.getElementById('bannerArquivo')?.files?.[0];
+  if (!arquivo) return alert('Selecione uma imagem.');
+  const form = new FormData();
+  form.append('image', arquivo);
+  form.append('link', document.getElementById('bannerLink')?.value || '');
+  form.append('type', document.getElementById('bannerTipo')?.value || 'carousel');
+  try {
+    const r = await fetch(API + '/admin/marketing/upload', {
+      method: 'POST', headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') }, body: form,
+    });
+    const j = await r.json();
+    if (!j.ok) return alert(j.message || 'Erro ao enviar.');
+    document.getElementById('bannerArquivo').value = '';
+    document.getElementById('bannerLink').value = '';
+    adminCarregarBanners();
+    window.recarregarCarrossel?.();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+async function adminEditarBannerLink(id) {
+  const atual = String(prompt('Novo link (deixe vazio para remover):') ?? '');
+  try {
+    await fetch(API + '/admin/marketing/' + encodeURIComponent(id), {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') },
+      body: JSON.stringify({ link: atual }),
+    });
+    adminCarregarBanners();
+    window.recarregarCarrossel?.();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+async function adminExcluirBanner(id) {
+  if (!confirm('Excluir este banner?')) return;
+  try {
+    await fetch(API + '/admin/marketing/delete/' + encodeURIComponent(id), {
+      method: 'DELETE', headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') },
+    });
+    adminCarregarBanners();
+    window.recarregarCarrossel?.();
+  } catch (e) { alert('Erro: ' + e.message); }
+}
+
+// IMPORTANTE: chamar na inicialização do painel, não somente no login.
+carregarConfigAdmin().then(() => {
+  adminCarregarBanners();
+});
+
+Nota: "escTexto" é uma função sua de escape de HTML. Se não tiver uma,
+implemente uma simples que troque &, <, >, " e ' por entidades.
+
+--------------------------------------------------------------------------------
+7. TRANSFORMAR UMA IMAGEM ESTÁTICA EM SLIDE
+--------------------------------------------------------------------------------
+
+Se hoje existe um banner fixo no layout (por exemplo <img src="banner.webp">)
+e ele deve passar a ser gerenciado pelo carrossel:
+
+1) Suba essa imagem para o bucket usando o próprio endpoint do admin.
+   Exemplo em Node:
+
+   import { readFileSync } from 'node:fs';
+   const W = '[URL_DA_API]';
+   const b = readFileSync('C:/[CAMINHO]/minha-imagem.webp');
+   const form = new FormData();
+   form.append('image', new Blob([b], { type: 'image/webp' }), 'minha-imagem.webp');
+   form.append('link', '');            // ou a URL desejada
+   form.append('type', 'carousel');
+   const r = await fetch(W + '/admin/marketing/upload', {
+     method: 'POST', headers: { Authorization: 'Bearer [SEU_TOKEN_ADMIN]' }, body: form,
+   });
+   console.log(await r.json());
+
+2) Substitua o <img> fixo pelo <div id="taxCarousel"> no mesmo lugar.
+3) Ajuste o aspect-ratio do CSS com as dimensões da imagem original.
+4) Confirme que não restou referência ao arquivo antigo:
+
+   grep -r "minha-imagem.webp" .
+
+5) O arquivo local agora pode ser removido: a imagem está no bucket.
+
+--------------------------------------------------------------------------------
+8. PASSO A PASSO PARA IMPLEMENTAR DO ZERO
+--------------------------------------------------------------------------------
+
+1. Defina os placeholders: domínio, URL da API, base do banco, bucket e token.
+2. Crie a API com o R2 binding, copie marketing.js e as rotas do item 5.
+3. Configure o CORS exatamente como no item 5.2 (com DELETE e Authorization).
+4. Gere o secret do token e grave /config/admin no banco com senha + token.
+5. Faça deploy da API.
+6. Teste: GET [URL_DA_API]/marketing/banners -> {"ok":true,"banners":[]}
+7. No site, insira o div do item 2, o CSS do item 3 e o carrossel.js do item 4.
+8. Se houver painel, copie o item 6 e garanta a init do item 6.2.
+9. Envie um banner de teste pelo painel e veja se aparece no site.
+10. Delete o banner de teste e confirme que o carrossel desaparece sem deixar espaço.
+11. Teste em desktop e mobile, com 1 slide e com 2+ slides.
+
+--------------------------------------------------------------------------------
+9. PROBLEMAS COMUNS E SOLUÇÕES
+--------------------------------------------------------------------------------
+
+"Failed to fetch" ao enviar:
+  CORS Allow-Headers só permitia Content-Type. Inclua Authorization.
+
+"Failed to fetch" ao excluir:
+  CORS Allow-Methods não permitia DELETE. Inclua DELETE (e PATCH).
+
+"Não autorizado" ao abrir o painel direto pela URL:
+  O token era carregado somente no login. Chame carregarConfigAdmin()
+  também na inicialização do painel.
+
+Carrossel com altura diferente do banner que ele substituiu:
+  Use aspect-ratio igual ao da imagem, em vez de height fixo.
+
+Bloco vazio aparece quando não há banners:
+  Esconda o contêiner com a classe .hidden quando banners.length === 0.
+
+Texto com caracteres estranhos (Ã©, â€) no código:
+  Salve todos os arquivos em UTF-8. Após qualquer conversão, valide com
+  "node --check arquivo.js" e confira as palavras acentuadas.
+
+Clique no banner dispara junto com o arraste:
+  A variável "moved" evita o clique quando houve arraste; mantenha-a.
+
+--------------------------------------------------------------------------------
+10. CHECKLIST DE TESTE
+--------------------------------------------------------------------------------
+
+[ ] GET público lista banners e responde 200
+[ ] Upload pelo painel salva imagem no bucket e metadados no banco
+[ ] Lista do painel mostra a imagem, o tipo e o link
+[ ] Editar link altera o destino do clique
+[ ] Excluir remove o banner e o carrossel reage sem recarregar a página
+[ ] Preflight OPTIONS liberaliza Authorization, DELETE e PATCH
+[ ] Imagem carrega no navegador (naturalWidth > 0)
+[ ] Desktop: proporção e largura corretas
+[ ] Mobile: responsivo, sem rolagem horizontal
+[ ] 1 slide: sem dots e sem autoplay
+[ ] 2+ slides: dots, autoplay a cada 8s e arraste funcionando
+[ ] Sem banners: nenhum bloco vazio visível
+[ ] Arquivos JS validados com node --check
+
+================================================================================
+FIM
+================================================================================

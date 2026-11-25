@@ -54,7 +54,7 @@ const CONFIG = {
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo (diária Ã— ciclo = retorno)
+// Planos do Taxinexo (diária × ciclo = retorno)
 const planos = [
   { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
   { id: 1, nome: 'Plano 15', entrada: 15, diaria: 3, ciclo: 10, retorno: 30 },
@@ -67,7 +67,7 @@ const planos = [
 ];
 
 // ------------------------------------------------------------
-// UTILITÃRIOS
+// UTILITÁRIOS
 // ------------------------------------------------------------
 const fmtBRL = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const fmtData = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
@@ -250,7 +250,7 @@ async function fazerCadastro() {
     if (!validarEmail(email)) return toast('E-mail inválido!');
     if (pix.length < 3) return toast('Chave Pix inválida!');
     if (senha.length < 8) return toast('Senha mínimo 8 caracteres.');
-    if (!/[A-Z]/.test(senha)) return toast('A senha precisa ter MAIÃšSCULA.');
+    if (!/[A-Z]/.test(senha)) return toast('A senha precisa ter MAIÚSCULA.');
     if (!/[a-z]/.test(senha)) return toast('A senha precisa ter minúscula.');
     if (!/\d/.test(senha)) return toast('A senha precisa ter número.');
     if (senha !== senha2) return toast('As senhas não coincidem!');
@@ -387,16 +387,16 @@ async function carregarEquipe() {
 
     if (lista) {
       if (!indicados.length) {
-        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">ðŸ¤</span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
+        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">🤝</span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
       } else {
         lista.innerHTML = indicados.map(ind => {
           const inicial = String(ind.nome || '?').trim()[0]?.toUpperCase() || '?';
           const data = ind.criado_em ? new Date(ind.criado_em).toLocaleDateString('pt-BR') : '';
           const email = String(ind.email || '');
-          const emailCurto = email.length > 26 ? email.slice(0, 24) + 'â€¦' : email;
+          const emailCurto = email.length > 26 ? email.slice(0, 24) + '…' : email;
           return `<div class="team-item">
             <div class="team-avatar">${escTexto(inicial)}</div>
-            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' â€¢ ' + data : ''}</small></div>
+            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' • ' + data : ''}</small></div>
             <span class="team-status ${ind.status === 'convertido' || ind.investiu ? 'investiu' : 'pendente'}">${ind.status === 'convertido' || ind.investiu ? 'CONVERTIDO' : 'PENDENTE'}</span>
           </div>`;
         }).join('');
@@ -419,7 +419,7 @@ async function carregarEquipe() {
       }
       if (btn) {
         btn.disabled = !concluida || jaResgatou;
-        btn.textContent = jaResgatou ? 'RESGATADO âœ“' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - convertidos.length)}`);
+        btn.textContent = jaResgatou ? 'RESGATADO ✓' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - convertidos.length)}`);
         btn.onclick = () => resgatarMeta(meta.qtd, meta.premio);
       }
     }
@@ -501,7 +501,7 @@ async function carregarPlanos() {
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('retorno')}</span><dt>Total recebido</dt><dd>${fmtBRL(p.retorno)}</dd></div>
       </dl>
       <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${p.nome}">
-        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">â†’</span>
+        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">→</span>
       </button>
     </article>`;
   }));
@@ -518,7 +518,7 @@ async function escolherPlano(id) {
   }
   const sel = el('investirPlano'); if (sel) sel.value = String(id);
   const info = el('investirInfo');
-  if (info) info.textContent = `${p.nome} â€¢ Entrada ${fmtBRL(p.entrada)} â€¢ Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias â€¢ Total ${fmtBRL(p.retorno)}`;
+  if (info) info.textContent = `${p.nome} • Entrada ${fmtBRL(p.entrada)} • Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias • Total ${fmtBRL(p.retorno)}`;
   const dlg = el('investirDialog'); if (dlg) dlg.showModal();
 }
 
@@ -578,7 +578,7 @@ async function carregarInvestimentos() {
           <div class="invest-bar"><i style="width:${pct}%"></i></div>
         </div>
         ${ativo ? `<div class="invest-timer" data-proximo="${proxPagamentoCliente(inv)}">
-          <span class="invest-timer-ico" aria-hidden="true">â±</span>
+          <span class="invest-timer-ico" aria-hidden="true">⏱</span>
           <span class="invest-timer-txt">Próximo rendimento em <strong>--:--:--</strong></span>
         </div>` : ''}
       </article>`;
@@ -612,7 +612,7 @@ function copiarLinkIndicacao() {
 }
 
 // ------------------------------------------------------------
-// DEPÃ“SITO PIX
+// DEPÓSITO PIX
 // ------------------------------------------------------------
 let pixInterval = null;
 let pixAtual = null;
@@ -1284,7 +1284,7 @@ async function salvarLinkGrupo() {
 }
 
 // ------------------------------------------------------------
-// ADMIN — CÃ“DIGOS DA ROLETA
+// ADMIN — CÓDIGOS DA ROLETA
 // ------------------------------------------------------------
 function listaCodigosRoleta() {
   const bruto = CONFIG.codigo_roleta || 'ROLETA';
@@ -1310,7 +1310,7 @@ async function salvarCodigosRoleta() {
   setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 
-// Códigos de bÃ´nus (1 resgate por código por cliente) — cada um com seu valor
+// Códigos de bônus (1 resgate por código por cliente) — cada um com seu valor
 function listaCodigosBonus() {
   const bruto = CONFIG.codigo_bonus || [];
   let arr;
@@ -1334,7 +1334,7 @@ function renderBonusLista() {
   box.innerHTML = itens.length ? itens.map((x, i) => `<div class="bonus-item">
     <code>${escTexto(x.codigo)}</code>
     <strong>${fmtBRL(x.valor)}</strong>
-    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">Ã—</button>
+    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">×</button>
   </div>`).join('') : '<p class="empty">Nenhum código cadastrado.</p>';
 }
 function adicionarCodigoBonus() {
@@ -1366,7 +1366,7 @@ async function carregarCodigosBonus() {
     const s = await db.child('config/codigo_bonus').once('value');
     if (s.exists()) CONFIG.codigo_bonus = s.val();
     renderBonusLista();
-  } catch (e) { console.warn('[BÃ´nus]', e); }
+  } catch (e) { console.warn('[Bônus]', e); }
 }
 async function salvarCodigosBonus() {
   if (!db) return;
@@ -1391,17 +1391,17 @@ async function resgatarBonus(codigo, usuario) {
   const tx = await db.child('transacoes').push({
     usuario_id: usuario.id, usuario_email: usuario.email, usuario_nome: usuario.nome,
     tipo: 'bonus', valor, status: 'aprovada',
-    observacao: `BÃ´nus resgatado — código ${codigo}`, criado_em: new Date().toISOString()
+    observacao: `Bônus resgatado — código ${codigo}`, criado_em: new Date().toISOString()
   });
   await db.child('transacoes_usuario/' + usuario.id + '/' + tx.key).set(true);
   usuario.saldo = (Number(atual.saldo) || 0) + valor;
   salvarUsuarioLocal(usuario);
   if (el('saldo')) el('saldo').textContent = Number(usuario.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  setMensagem('bonusResult', `BÃ´nus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
+  setMensagem('bonusResult', `Bônus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
 }
 
 // ------------------------------------------------------------
-// BÃ”NUS E RODADA
+// BÔNUS E RODADA
 // ------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   configurarCarteira();
@@ -1440,8 +1440,8 @@ document.addEventListener('DOMContentLoaded', () => {
         return setMensagem('wheelResult', 'Código inválido.', 'error');
       spinning = true;
       const btn = el('spinButton'), wheel = el('luckWheel');
-      btn.disabled = true; el('wheelCode').disabled = true; btn.textContent = 'Girandoâ€¦';
-      setMensagem('wheelResult', 'Aguarde o resultado do giroâ€¦', 'loading');
+      btn.disabled = true; el('wheelCode').disabled = true; btn.textContent = 'Girando…';
+      setMensagem('wheelResult', 'Aguarde o resultado do giro…', 'loading');
       const seg = Math.floor(Math.random() * 6);
       const alvo = (360 - (seg * 60 + 30)) % 360;
       rotation += 360 * 5 + (alvo - (rotation % 360) + 360) % 360;
