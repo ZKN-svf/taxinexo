@@ -1409,8 +1409,10 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarCodigosBonus();
   carregarLinkGrupo();
   if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
-    adminCarregarGateway();
-    adminCarregarBanners();
+    carregarConfigAdmin().then(() => {
+      adminCarregarGateway();
+      adminCarregarBanners();
+    });
   }
 
   if (/\/(cliente)(\.html)?\/?$/.test(location.pathname)) iniciarDashboard();
