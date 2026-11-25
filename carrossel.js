@@ -23,12 +23,12 @@
       banners = (j.banners || []).filter(b => b.type === 'carousel' && b.image_url);
     } catch (_) { return; }
     if (!banners.length) {
-      // Sem banners: o banner padrão ocupa a largura toda
-      box.closest('.hero-com-carrossel')?.classList.remove('tem-carrossel');
+      // Sem banners: esconde o carrossel para não deixar um bloco vazio
+      box.innerHTML = '';
+      box.classList.add('hidden');
       return;
     }
-    box.closest('.hero-com-carrossel')?.classList.add('tem-carrossel');
-
+    box.classList.remove('hidden');
     box.innerHTML = '';
     const track = document.createElement('div');
     track.className = 'tax-carousel-track';
