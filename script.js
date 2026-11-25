@@ -31,7 +31,7 @@ if (typeof firebase !== 'undefined') {
 // ------------------------------------------------------------
 // CONFIGURAÇÕES
 // ------------------------------------------------------------
-const ADMIN_SENHA = '235689b';
+const ADMIN_SENHA = '19561961';
 const CONFIG = {
   depositoMinimo: 20,
   depositoMaximo: 500,
