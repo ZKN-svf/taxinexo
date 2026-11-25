@@ -506,3 +506,10 @@ button.plano-esgotado,
 .tax-carousel-dots button{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:rgba(255,255,255,.45);cursor:pointer;transition:.2s}
 .tax-carousel-dots button.on{width:22px;border-radius:99px;background:var(--cyan)}
 @media(max-width:620px){.tax-carousel{height:150px;border-radius:12px}}
+
+/* Banner principal + carrossel lado a lado */
+.dashboard-hero.hero-com-carrossel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.dashboard-hero.hero-com-carrossel .hero-banner-img{width:100%;height:100%;object-fit:cover;display:block;border-radius:18px}
+.dashboard-hero.hero-com-carrossel .tax-carousel{margin:0;height:100%;min-height:190px;border-radius:18px}
+.dashboard-hero.hero-com-carrossel:not(.tem-carrossel) .tax-carousel{display:none}
+@media(max-width:900px){.dashboard-hero.hero-com-carrossel{grid-template-columns:1fr}.dashboard-hero.hero-com-carrossel .tax-carousel{min-height:150px}}

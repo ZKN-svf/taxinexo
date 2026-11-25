@@ -22,7 +22,12 @@
       const j = await r.json();
       banners = (j.banners || []).filter(b => b.type === 'carousel' && b.image_url);
     } catch (_) { return; }
-    if (!banners.length) return;
+    if (!banners.length) {
+      // Sem banners: o banner padrão ocupa a largura toda
+      box.closest('.hero-com-carrossel')?.classList.remove('tem-carrossel');
+      return;
+    }
+    box.closest('.hero-com-carrossel')?.classList.add('tem-carrossel');
 
     box.innerHTML = '';
     const track = document.createElement('div');
