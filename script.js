@@ -593,7 +593,7 @@ async function carregarExtrato() {
     const keys = await chavesDaLista('transacoes_usuario/' + u.id);
     const itens = await lerCada('transacoes', keys);
     const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || '')).slice(0, 30);
-    if (!lista.length) { box.innerHTML = '<p class="empty-state">Nenhuma movimentaÃ§Ã£o ainda.</p>'; return; }
+    if (!lista.length) { box.innerHTML = '<p class="empty-state">Nenhuma movimentação ainda.</p>'; return; }
     box.innerHTML = lista.map(t => `
       <div class="movimento">
         <div><strong>${t.tipo || 'TransaÃ§Ã£o'}</strong><small>${fmtData(t.criado_em)}</small></div>
