@@ -177,8 +177,8 @@ function horarioSaquePermitido() {
 function proximoHorarioSaque() {
   const h = new Date().getHours();
   return h < CONFIG.horarioSaqueInicio
-    ? `Hoje  s ${CONFIG.horarioSaqueInicio}:00`
-    : `Amanhã  s ${CONFIG.horarioSaqueInicio}:00`;
+    ? `Hoje às ${CONFIG.horarioSaqueInicio}:00`
+    : `Amanhã às ${CONFIG.horarioSaqueInicio}:00`;
 }
 function setMensagem(id, texto, estado) {
   const e = el(id); if (!e) return;
@@ -432,7 +432,7 @@ async function carregarEquipe() {
 async function resgatarMeta(qtd, premio) {
   const u = usuarioLocal();
   if (!u || !db) return;
-  if (!confirm(`Resgatar o prªmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
+  if (!confirm(`Resgatar o prêmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
   try {
     const ja = await db.child('metas_resgatadas/' + u.id + '/' + qtd).once('value');
     if (ja.exists()) return toast('Esta meta já foi resgatada.');
@@ -555,7 +555,7 @@ async function carregarInvestimentos() {
     const itens = await lerCada('investimentos', keys);
     const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || ''));
     if (!lista.length) {
-      tbody.innerHTML = '<p class="empty-state">Vocª ainda não tem investimentos. Escolha um plano abaixo para começar.</p>';
+      tbody.innerHTML = '<p class="empty-state">Você ainda não tem investimentos. Escolha um plano abaixo para começar.</p>';
       return;
     }
     tbody.innerHTML = lista.map(inv => {
@@ -823,14 +823,14 @@ async function confirmarSaque(ev) {
 
   const controle = await saquesEstaoBloqueados();
   if (controle.bloqueado) return toast(controle.mensagem);
-  if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h  s ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
+  if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h às ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
   if (!(valor >= CONFIG.saqueMinimo)) return toast(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
   if (pix.length < 4) return toast('Digite uma chave Pix válida.');
   const feitos = await contarSaquesHoje(u.id);
-  if (feitos >= CONFIG.saquesPorDia) return toast(`Vocª já fez ${CONFIG.saquesPorDia} saques hoje.`);
-  if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! Vocª tem ${fmtBRL(u.saldo)}.`);
+  if (feitos >= CONFIG.saquesPorDia) return toast(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
+  if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
   // Só permite saque para quem já fez um depósito real.
-  if ((Number(u.total_depositado) || 0) <= 0) return toast('Vocª precisa fazer um depósito antes de solicitar um saque.');
+  if ((Number(u.total_depositado) || 0) <= 0) return toast('Você precisa fazer um depósito antes de solicitar um saque.');
   if (!db) return toast('Firebase não conectado.');
 
   const c = calcularSaque(valor);
@@ -839,7 +839,7 @@ async function confirmarSaque(ev) {
     if (s.sucesso && s.available < c.liquido) return toast('Saque temporariamente indisponível: saldo em processamento.');
   }
 
-  if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocª recebe: ${fmtBRL(c.liquido)}`)) return;
+  if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocê recebe: ${fmtBRL(c.liquido)}`)) return;
 
   const btn = ev && ev.target && ev.target.querySelector ? ev.target.querySelector('button[type="submit"]') : null;
   const original = btn ? btn.innerHTML : '';
@@ -869,7 +869,7 @@ async function confirmarSaque(ev) {
       db.child('plataforma/taxas_recebidas').transaction(v => (v || 0) + c.taxa);
       u.saldo = novoSaldo; salvarUsuarioLocal(u);
     }
-    toast(`Saque enviado!\n\nVocª recebe: ${fmtBRL(c.liquido)}`);
+    toast(`Saque enviado!\n\nVocê recebe: ${fmtBRL(c.liquido)}`);
     const d = el('saqueDialog'); if (d) d.close();
     setTimeout(() => location.reload(), 1200);
   } catch (e) {
@@ -1381,7 +1381,7 @@ async function resgatarBonus(codigo, usuario) {
   if (!item) return setMensagem('bonusResult', 'Código inválido.', 'error');
   if (!db) return setMensagem('bonusResult', 'Firebase não conectado.', 'error');
   const jaPegou = await db.child('bonus_resgates/' + usuario.id + '/' + codigo).once('value');
-  if (jaPegou.exists()) return setMensagem('bonusResult', 'Vocª já resgatou este código.', 'error');
+  if (jaPegou.exists()) return setMensagem('bonusResult', 'Você já resgatou este código.', 'error');
   const valor = item.valor;
   const snap = await db.child('usuarios/' + usuario.id).once('value');
   if (!snap.exists()) return setMensagem('bonusResult', 'Usuário não encontrado.', 'error');
