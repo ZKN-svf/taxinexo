@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
 </head>
-<body class="dashboard">
+<body class="dashboard admin-page">
 
   <!-- ============================================================
        TOPBAR
@@ -15,6 +15,9 @@
   <header class="topbar">
     <a href="cliente.html"><img src="brand-transparent.png" alt="Taxinexo Investimentos"></a>
     <div class="account">
+      <span class="admin-top-chip" id="adminTopSaqueChip" data-estado="liberado" title="Controle de saques">
+        <i aria-hidden="true"></i><span>Saques liberados</span>
+      </span>
       <div class="avatar" aria-hidden="true">A</div>
       <div class="account-meta">
         <strong>Administração</strong>
@@ -41,7 +44,7 @@
         <p>Entre com a senha de administrador para gerenciar a plataforma.</p>
 
         <form onsubmit="event.preventDefault(); entrarAdmin()">
-          <label class="field">
+          <label class="field" for="adminSenha">
             <span>Senha</span>
             <span class="input-wrap">
               <span class="ico ico-lock" aria-hidden="true"></span>
@@ -60,410 +63,511 @@
     ============================================================ -->
     <div id="adminPanel" style="display:none;">
 
-      <div class="admin-top">
-        <div>
+      <!-- CABEÇALHO -->
+      <div class="admin-head">
+        <div class="admin-head-txt">
+          <span class="admin-eyebrow">Taxinexo · Administração</span>
           <h1>Painel administrativo</h1>
-          <p>Visão geral da plataforma Taxinexo</p>
+          <p>Visão geral, financeiro e configurações da plataforma.</p>
         </div>
-        <button class="btn secondary" onclick="carregarAdmin()">Atualizar</button>
+        <div class="admin-head-actions">
+          <span class="admin-updated" id="adminUltimaAtualizacao">Aguardando dados...</span>
+          <button class="btn secondary admin-refresh" onclick="carregarAdmin()">
+            <span class="ico ico-refresh" aria-hidden="true"></span> Atualizar
+          </button>
+        </div>
       </div>
 
-      <!-- ESTATÍSTICAS -->
-      <section class="admin-stats">
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-users" aria-hidden="true"></span>
-          <small>Usuários</small>
-          <strong id="adminUsuarios">0</strong>
-        </article>
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-trending" aria-hidden="true"></span>
-          <small>Invest. ativos</small>
-          <strong id="adminInvestimentos">0</strong>
-        </article>
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-money" aria-hidden="true"></span>
-          <small>Total investido</small>
-          <strong id="adminTotalInvestido">R$ 0,00</strong>
-        </article>
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-chart" aria-hidden="true"></span>
-          <small>Rendimentos</small>
-          <strong id="adminTotalRendimentos">R$ 0,00</strong>
-        </article>
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-wallet" aria-hidden="true"></span>
-          <small>Saques pagos</small>
-          <strong id="adminTotalSaques">R$ 0,00</strong>
-        </article>
-        <article class="admin-stat">
-          <span class="admin-stat-ico ico-bank" aria-hidden="true"></span>
-          <small>Saldo gateway</small>
-          <strong id="adminSaldoGateway">—</strong>
-          <button class="mini-btn" style="margin-top:6px" onclick="adminAtualizarSaldoGateway()">Atualizar</button>
-        </article>
-      </section>
+      <div class="admin-layout">
 
-      <!-- AÇÕES RÁPIDAS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Ações rápidas</h2>
-          <small>Operações do dia a dia</small>
-        </div>
+        <!-- NAVEGAÇÃO LATERAL -->
+        <aside class="admin-side" aria-label="Seções do painel">
+          <nav class="admin-nav">
+            <button type="button" class="admin-nav-item ativo" data-alvo="sec-visao">
+              <span class="ico ico-chart" aria-hidden="true"></span><span>Visão geral</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-saques">
+              <span class="ico ico-wallet" aria-hidden="true"></span><span>Saques</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-usuarios">
+              <span class="ico ico-users" aria-hidden="true"></span><span>Usuários</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-investimentos">
+              <span class="ico ico-trending" aria-hidden="true"></span><span>Investimentos</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-relatorios">
+              <span class="ico ico-list" aria-hidden="true"></span><span>Rendimentos</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-banners">
+              <span class="ico ico-image" aria-hidden="true"></span><span>Banners</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-codigos">
+              <span class="ico ico-gift" aria-hidden="true"></span><span>Códigos</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-config">
+              <span class="ico ico-key" aria-hidden="true"></span><span>Configurações</span>
+            </button>
+          </nav>
 
-        <div class="admin-actions">
-          <article class="admin-action">
-            <span class="admin-action-ico green ico-refresh" aria-hidden="true"></span>
-            <div>
-              <h3>Processar rendimentos</h3>
-              <p>Credita 1 diária de cada investimento ativo e devolve o capital ao final do ciclo.</p>
-            </div>
-            <button class="btn" onclick="processarRendimentos()">Processar</button>
-          </article>
-
-          <article class="admin-action">
-            <span class="admin-action-ico red ico-ban" aria-hidden="true"></span>
-            <div>
-              <h3>Controle de saques</h3>
-              <p>Bloqueie os saques globalmente e defina a mensagem exibida.</p>
-            </div>
-            <div class="admin-action-form">
-              <input id="adminMotivoBloqueio" placeholder="Motivo (opcional)" maxlength="120">
-              <button class="btn danger" onclick="alternarBloqueioSaques()">Bloquear / liberar</button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- LINK DO GRUPO -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Link do grupo</h2>
-          <small>Botão flutuante do WhatsApp</small>
-        </div>
-
-        <article class="admin-action">
-          <span class="admin-action-ico green ico-message" aria-hidden="true"></span>
-          <div style="flex:1 1 100%">
-            <h3>Link de convite do grupo</h3>
-            <p>Este link aparece no botão verde do canto da tela em todas as páginas.</p>
-
-            <div class="search-row" style="margin-top:10px;">
-              <input
-                id="adminLinkGrupo"
-                placeholder="https://chat.whatsapp.com/..."
-                style="flex:1 1 260px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(1,12,32,.75);color:#fff;outline:0;"
-              >
-              <button class="btn" onclick="salvarLinkGrupo()">Salvar link</button>
-              <button class="btn secondary" onclick="carregarLinkGrupo()">Recarregar</button>
-            </div>
-
-            <p class="result" id="adminLinkGrupoMsg" role="status" aria-live="polite"></p>
+          <div class="admin-side-card">
+            <span class="admin-side-label">Controle de saques</span>
+            <strong class="admin-side-status" id="adminSideSaqueStatus" data-estado="liberado">
+              <i aria-hidden="true"></i> Liberados
+            </strong>
+            <p id="adminSideSaqueDesc">Clientes podem solicitar normalmente.</p>
+            <button class="btn small secondary block" type="button" onclick="irParaSecao('sec-saques')">Gerenciar saques</button>
           </div>
-        </article>
-      </section>
+        </aside>
 
-      <!-- CÓDIGOS PROMOCIONAIS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Códigos promocionais</h2>
-          <small>Um código por linha</small>
-        </div>
+        <!-- CONTEÚDO -->
+        <div class="admin-content">
 
-        <div class="admin-codes">
-          <!-- ROLETA -->
-          <article class="admin-code-card">
-            <div class="admin-code-head">
-              <span class="admin-code-ico ico-wheel" aria-hidden="true"></span>
+          <!-- VISÃO GERAL -->
+          <section class="admin-block" id="sec-visao">
+            <div class="admin-block-head">
               <div>
-                <h3>Códigos da roleta</h3>
-                <p>Libera o giro da roleta para o cliente.</p>
+                <h2>Visão geral</h2>
+                <p>Números atualizados da plataforma.</p>
               </div>
             </div>
 
-            <textarea id="adminCodigosRoleta" rows="4" placeholder="ROLETA&#10;PROMO2026"></textarea>
-
-            <div class="row">
-              <button class="btn" onclick="salvarCodigosRoleta()">Salvar códigos</button>
-              <button class="btn secondary" onclick="carregarCodigosRoleta()">Recarregar</button>
+            <div class="admin-stats">
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-users" aria-hidden="true"></span>
+                <small>Usuários</small>
+                <strong id="adminUsuarios">0</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-trending" aria-hidden="true"></span>
+                <small>Invest. ativos</small>
+                <strong id="adminInvestimentos">0</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-money" aria-hidden="true"></span>
+                <small>Total investido</small>
+                <strong id="adminTotalInvestido">R$ 0,00</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-chart" aria-hidden="true"></span>
+                <small>Rendimentos</small>
+                <strong id="adminTotalRendimentos">R$ 0,00</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-wallet" aria-hidden="true"></span>
+                <small>Saques pagos</small>
+                <strong id="adminTotalSaques">R$ 0,00</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-clock" aria-hidden="true"></span>
+                <small>Saques pendentes</small>
+                <strong id="adminSaquesPendentes">0</strong>
+              </article>
+              <article class="admin-stat">
+                <span class="admin-stat-ico ico-users" aria-hidden="true"></span>
+                <small>Saldo em contas</small>
+                <strong id="adminSaldoContas">R$ 0,00</strong>
+              </article>
+              <article class="admin-stat admin-stat-gateway">
+                <span class="admin-stat-ico ico-bank" aria-hidden="true"></span>
+                <small>Gateway (estimado)</small>
+                <strong id="adminSaldoGateway">—</strong>
+                <button class="mini-btn" type="button" onclick="adminAtualizarSaldoGateway()">Consultar gateway</button>
+              </article>
             </div>
 
-            <p class="result" id="adminRoletaMsg" role="status" aria-live="polite"></p>
-          </article>
-
-          <!-- BÔNUS -->
-          <article class="admin-code-card">
-            <div class="admin-code-head">
-              <span class="admin-code-ico gold ico-gift" aria-hidden="true"></span>
+            <div class="admin-block-head admin-block-head-sub">
               <div>
-                <h3>Códigos de bônus</h3>
-                <p>Cada código tem seu próprio valor e 1 resgate por cliente.</p>
+                <h2>Ações rápidas</h2>
+                <p>Operações do dia a dia.</p>
               </div>
             </div>
 
-            <div id="adminBonusLista" class="bonus-lista"></div>
+            <div class="admin-actions">
+              <article class="admin-action">
+                <span class="admin-action-ico green ico-refresh" aria-hidden="true"></span>
+                <div>
+                  <h3>Processar rendimentos</h3>
+                  <p>Credita 1 diária de cada investimento ativo e devolve o capital ao final do ciclo.</p>
+                </div>
+                <button class="btn" type="button" onclick="processarRendimentos(event)">Processar</button>
+              </article>
 
-            <div class="bonus-add">
-              <input
-                id="adminNovoCodigo"
-                placeholder="CÓDIGO"
-                maxlength="24"
-                style="text-transform:uppercase;flex:1 1 140px;min-width:0"
-              >
-              <input
-                id="adminNovoValor"
-                type="number"
-                min="0.01"
-                step="0.01"
-                placeholder="Valor R$"
-                style="flex:0 1 110px;min-width:0"
-              >
-              <button class="btn" onclick="adicionarCodigoBonus()">Adicionar</button>
+              <article class="admin-action admin-action-saques" id="adminAcaoSaques" data-estado="liberado">
+                <span class="admin-action-ico ico-wallet" aria-hidden="true"></span>
+                <div>
+                  <h3>Controle de saques</h3>
+                  <p id="adminAcaoSaquesDesc">Saques liberados para todos os clientes.</p>
+                </div>
+                <button class="btn small secondary" type="button" onclick="irParaSecao('sec-saques')">Gerenciar</button>
+              </article>
             </div>
+          </section>
 
-            <div class="row">
-              <button class="btn" onclick="salvarCodigosBonus()">Salvar todos</button>
-              <button class="btn secondary" onclick="carregarCodigosBonus()">Recarregar</button>
-            </div>
-
-            <p class="result" id="adminBonusMsg" role="status" aria-live="polite"></p>
-          </article>
-        </div>
-      </section>
-
-      <!-- RELATÓRIOS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Relatórios</h2>
-          <small>Dados em tempo real</small>
-        </div>
-
-        <div class="admin-report">
-          <article class="admin-table-card">
-            <h3>Rendimentos por investimento</h3>
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Plano</th>
-                    <th>Diária</th>
-                    <th>Progresso</th>
-                    <th>Recebido</th>
-                  </tr>
-                </thead>
-                <tbody id="adminRendimentosBody">
-                  <tr><td colspan="5" class="empty">Carregando...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </article>
-
-          <article class="admin-table-card">
-            <h3>Últimos saques</h3>
-            <div class="table-scroll">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th>Bruto</th>
-                    <th>Líquido</th>
-                    <th>Data</th>
-                    <th>Status</th>
-                  </tr>
-                </thead>
-                <tbody id="adminSaquesBody">
-                  <tr><td colspan="5" class="empty">Carregando...</td></tr>
-                </tbody>
-              </table>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <!-- GERENCIAR USUÁRIOS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Gerenciar usuários</h2>
-          <small>Criar, remover e ajustar saldo</small>
-        </div>
-
-        <div class="admin-tools-grid">
-          <!-- CRIAR -->
-          <article class="admin-action">
-            <span class="admin-action-ico green ico-plus" aria-hidden="true"></span>
-            <div style="flex:1 1 100%">
-              <h3>Criar usuário</h3>
-              <div class="form-grid">
-                <input id="novoUsuarioNome" placeholder="Nome completo">
-                <input id="novoUsuarioEmail" placeholder="E-mail" type="email">
-                <input id="novoUsuarioCpf" placeholder="CPF (só números)" maxlength="14">
-                <input id="novoUsuarioCelular" placeholder="Celular" maxlength="15">
-                <input id="novoUsuarioSenha" placeholder="Senha (mín. 8)" type="password">
-              </div>
-              <button class="btn" style="margin-top:10px" onclick="adminCriarUsuario()">Criar usuário</button>
-            </div>
-          </article>
-
-          <!-- AJUSTAR SALDO -->
-          <article class="admin-action">
-            <span class="admin-action-ico gold ico-money" aria-hidden="true"></span>
-            <div style="flex:1 1 100%">
-              <h3>Ajustar saldo</h3>
-              <div class="form-grid">
-                <select id="adminSaldoUsuario"></select>
-                <input id="adminSaldoValor" type="number" min="0.01" step="0.01" placeholder="Valor R$">
-              </div>
-              <div class="row" style="margin-top:10px">
-                <button class="btn" onclick="adminAjustarSaldo(1)">Adicionar saldo</button>
-                <button class="btn danger" onclick="adminAjustarSaldo(-1)">Tirar saldo</button>
+          <!-- SAQUES -->
+          <section class="admin-block" id="sec-saques">
+            <div class="admin-block-head">
+              <div>
+                <h2>Saques</h2>
+                <p>Libere ou bloqueie os saques e acompanhe as solicitações.</p>
               </div>
             </div>
-          </article>
-        </div>
 
-        <article class="admin-table-card">
-          <div class="table-head-row">
-            <h3>Usuários</h3>
-            <input
-              id="adminBuscaUsuario"
-              class="table-search"
-              placeholder="Buscar por nome, e-mail ou CPF..."
-              oninput="renderAdminUsuarios()"
-            >
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Usuário</th>
-                  <th>E-mail</th>
-                  <th>Saldo</th>
-                  <th>Total dep.</th>
-                  <th>Indicados</th>
-                  <th>Desde</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="adminUsuariosBody">
-                <tr><td colspan="7" class="empty">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </section>
+            <article class="saque-status" id="saqueStatusCard" data-estado="liberado">
+              <div class="saque-status-main">
+                <span class="saque-status-ico" aria-hidden="true"></span>
+                <div class="saque-status-txt">
+                  <span class="saque-status-tag">Controle global</span>
+                  <h3 id="saqueStatusTitulo">Saques liberados</h3>
+                  <p id="saqueStatusDesc">Os clientes podem solicitar saques normalmente.</p>
+                  <small id="saqueStatusData">—</small>
+                </div>
+              </div>
+              <div class="saque-status-actions">
+                <label class="saque-status-label" for="adminMotivoBloqueio">Mensagem exibida ao cliente</label>
+                <input id="adminMotivoBloqueio" maxlength="120" placeholder="Motivo do bloqueio (opcional)">
+                <div class="saque-status-btns">
+                  <button class="btn success" type="button" id="btnLiberarSaques" onclick="definirBloqueioSaques(false)">
+                    <span class="ico ico-check" aria-hidden="true"></span> Liberar saques
+                  </button>
+                  <button class="btn danger" type="button" id="btnBloquearSaques" onclick="definirBloqueioSaques(true)">
+                    <span class="ico ico-ban" aria-hidden="true"></span> Bloquear saques
+                  </button>
+                </div>
+              </div>
+            </article>
 
-      <!-- INVESTIMENTOS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Investimentos</h2>
-          <small>Todos os planos dos clientes</small>
-        </div>
+            <article class="admin-table-card">
+              <div class="table-head-row">
+                <h3>Últimos saques <span class="count-pill" id="adminSaquesCount">0</span></h3>
+                <div class="table-tools">
+                  <select id="adminFiltroSaques" onchange="renderAdminSaques()" aria-label="Filtrar saques">
+                    <option value="todos">Todos os status</option>
+                    <option value="pagos">Pagos / aprovados</option>
+                    <option value="pendentes">Pendentes</option>
+                    <option value="recusados">Recusados / bloqueados</option>
+                  </select>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Bruto</th>
+                      <th>Taxa</th>
+                      <th>Líquido</th>
+                      <th>Data</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminSaquesBody">
+                    <tr><td colspan="6" class="empty">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
 
-        <article class="admin-table-card">
-          <div class="table-head-row">
-            <h3>Lista de investimentos</h3>
-            <input
-              id="adminBuscaInvest"
-              class="table-search"
-              placeholder="Buscar cliente ou plano..."
-              oninput="renderAdminInvestimentos()"
-            >
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Cliente</th>
-                  <th>Plano</th>
-                  <th>Aplicado</th>
-                  <th>Diária</th>
-                  <th>Progresso</th>
-                  <th>Recebido</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody id="adminInvestBody">
-                <tr><td colspan="7" class="empty">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </section>
-
-      <!-- BANNERS -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Banners do site</h2>
-          <small>Carrossel na home e no painel</small>
-        </div>
-
-        <article class="admin-action">
-          <span class="admin-action-ico ico-image" aria-hidden="true"></span>
-          <div style="flex:1 1 100%">
-            <h3>Adicionar banner</h3>
-            <p>Imagem PNG/JPG/WEBP/GIF até 5 MB. O link é opcional — se preenchido, clicar no banner redireciona.</p>
-
-            <div class="form-grid">
-              <input id="bannerArquivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" style="grid-column:1/-1">
-              <input id="bannerLink" placeholder="Link (https://...) — opcional" style="grid-column:1/-1">
-              <select id="bannerTipo" style="grid-column:1/-1">
-                <option value="carousel">Carrossel (home e painel)</option>
-                <option value="popup">Popup</option>
-              </select>
+          <!-- USUÁRIOS -->
+          <section class="admin-block" id="sec-usuarios">
+            <div class="admin-block-head">
+              <div>
+                <h2>Usuários</h2>
+                <p>Criar contas, ajustar saldo e gerenciar clientes.</p>
+              </div>
             </div>
 
-            <button class="btn" style="margin-top:10px" onclick="adminEnviarBanner()">Enviar banner</button>
-            <p class="result" id="adminBannerMsg" role="status" aria-live="polite"></p>
-          </div>
-        </article>
+            <div class="admin-tools-grid">
+              <article class="admin-action">
+                <span class="admin-action-ico green ico-plus" aria-hidden="true"></span>
+                <div class="admin-action-body">
+                  <h3>Criar usuário</h3>
+                  <div class="form-grid">
+                    <input id="novoUsuarioNome" placeholder="Nome completo" autocomplete="name">
+                    <input id="novoUsuarioEmail" placeholder="E-mail" type="email" autocomplete="email">
+                    <input id="novoUsuarioCpf" placeholder="CPF (só números)" maxlength="14" inputmode="numeric">
+                    <input id="novoUsuarioCelular" placeholder="Celular" maxlength="15" inputmode="tel">
+                    <input id="novoUsuarioSenha" placeholder="Senha (mín. 8)" type="password" autocomplete="new-password">
+                  </div>
+                  <button class="btn" type="button" onclick="adminCriarUsuario()">Criar usuário</button>
+                </div>
+              </article>
 
-        <article class="admin-table-card">
-          <div class="table-head-row">
-            <h3>Banners ativos</h3>
-            <button class="btn secondary" onclick="adminCarregarBanners()">Atualizar</button>
-          </div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr><th>Imagem</th><th>Tipo</th><th>Link</th><th></th></tr>
-              </thead>
-              <tbody id="adminBannersBody">
-                <tr><td colspan="4" class="empty">Carregando...</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </section>
+              <article class="admin-action">
+                <span class="admin-action-ico gold ico-money" aria-hidden="true"></span>
+                <div class="admin-action-body">
+                  <h3>Ajustar saldo</h3>
+                  <div class="form-grid">
+                    <select id="adminSaldoUsuario" aria-label="Usuário"></select>
+                    <input id="adminSaldoValor" type="number" min="0.01" step="0.01" placeholder="Valor R$" inputmode="decimal">
+                  </div>
+                  <div class="row">
+                    <button class="btn success" type="button" onclick="adminAjustarSaldo(1)">Adicionar saldo</button>
+                    <button class="btn danger" type="button" onclick="adminAjustarSaldo(-1)">Tirar saldo</button>
+                  </div>
+                </div>
+              </article>
+            </div>
 
-      <!-- GATEWAY -->
-      <section class="admin-section">
-        <div class="admin-sec-head">
-          <h2>Gateway de pagamento</h2>
-          <small>NexasPay — credenciais do relay na VPS</small>
+            <article class="admin-table-card">
+              <div class="table-head-row">
+                <h3>Lista de usuários <span class="count-pill" id="adminUsuariosCount">0</span></h3>
+                <div class="table-tools">
+                  <span class="table-search-wrap">
+                    <span class="ico ico-search" aria-hidden="true"></span>
+                    <input id="adminBuscaUsuario" class="table-search" placeholder="Buscar nome, e-mail ou CPF..." oninput="renderAdminUsuarios()" aria-label="Buscar usuários">
+                  </span>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Usuário</th>
+                      <th>E-mail</th>
+                      <th>Saldo</th>
+                      <th>Total dep.</th>
+                      <th>Indicados</th>
+                      <th>Desde</th>
+                      <th class="th-acoes">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminUsuariosBody">
+                    <tr><td colspan="7" class="empty">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- INVESTIMENTOS -->
+          <section class="admin-block" id="sec-investimentos">
+            <div class="admin-block-head">
+              <div>
+                <h2>Investimentos</h2>
+                <p>Todos os planos contratados pelos clientes.</p>
+              </div>
+            </div>
+
+            <article class="admin-table-card">
+              <div class="table-head-row">
+                <h3>Lista de investimentos <span class="count-pill" id="adminInvestCount">0</span></h3>
+                <div class="table-tools">
+                  <span class="table-search-wrap">
+                    <span class="ico ico-search" aria-hidden="true"></span>
+                    <input id="adminBuscaInvest" class="table-search" placeholder="Buscar cliente ou plano..." oninput="renderAdminInvestimentos()" aria-label="Buscar investimentos">
+                  </span>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Plano</th>
+                      <th>Aplicado</th>
+                      <th>Diária</th>
+                      <th>Progresso</th>
+                      <th>Recebido</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminInvestBody">
+                    <tr><td colspan="7" class="empty">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- RENDIMENTOS -->
+          <section class="admin-block" id="sec-relatorios">
+            <div class="admin-block-head">
+              <div>
+                <h2>Rendimentos</h2>
+                <p>Investimentos ativos e progresso dos pagamentos.</p>
+              </div>
+            </div>
+
+            <article class="admin-table-card">
+              <div class="table-head-row">
+                <h3>Rendimentos por investimento <span class="count-pill" id="adminRendimentosCount">0</span></h3>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Plano</th>
+                      <th>Diária</th>
+                      <th>Progresso</th>
+                      <th>Recebido</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminRendimentosBody">
+                    <tr><td colspan="5" class="empty">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- BANNERS -->
+          <section class="admin-block" id="sec-banners">
+            <div class="admin-block-head">
+              <div>
+                <h2>Banners</h2>
+                <p>Carrossel da home e do painel do cliente.</p>
+              </div>
+            </div>
+
+            <article class="admin-action admin-banner-form">
+              <span class="admin-action-ico ico-image" aria-hidden="true"></span>
+              <div class="admin-action-body">
+                <h3>Adicionar banner</h3>
+                <p>Imagem PNG/JPG/WEBP/GIF até 5 MB. O link é opcional — se preenchido, clicar no banner redireciona.</p>
+
+                <div class="form-grid">
+                  <input id="bannerArquivo" type="file" accept="image/png,image/jpeg,image/webp,image/gif" class="form-full">
+                  <input id="bannerLink" placeholder="Link (https://...) — opcional" class="form-full">
+                  <select id="bannerTipo" class="form-full" aria-label="Tipo do banner">
+                    <option value="carousel">Carrossel (home e painel)</option>
+                    <option value="popup">Popup</option>
+                  </select>
+                </div>
+
+                <button class="btn" type="button" onclick="adminEnviarBanner()">Enviar banner</button>
+                <p class="result" id="adminBannerMsg" role="status" aria-live="polite"></p>
+              </div>
+            </article>
+
+            <article class="admin-table-card">
+              <div class="table-head-row">
+                <h3>Banners ativos <span class="count-pill" id="adminBannersCount">0</span></h3>
+                <button class="btn small secondary" type="button" onclick="adminCarregarBanners()">Atualizar</button>
+              </div>
+              <div class="table-scroll">
+                <table>
+                  <thead>
+                    <tr><th>Imagem</th><th>Tipo</th><th>Link</th><th class="th-acoes">Ações</th></tr>
+                  </thead>
+                  <tbody id="adminBannersBody">
+                    <tr><td colspan="4" class="empty">Carregando...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <!-- CÓDIGOS -->
+          <section class="admin-block" id="sec-codigos">
+            <div class="admin-block-head">
+              <div>
+                <h2>Códigos promocionais</h2>
+                <p>Códigos da roleta e bônus com valor próprio.</p>
+              </div>
+            </div>
+
+            <div class="admin-codes">
+              <article class="admin-code-card">
+                <div class="admin-code-head">
+                  <span class="admin-code-ico ico-wheel" aria-hidden="true"></span>
+                  <div>
+                    <h3>Códigos da roleta</h3>
+                    <p>Libera o giro da roleta para o cliente.</p>
+                  </div>
+                </div>
+
+                <textarea id="adminCodigosRoleta" rows="4" placeholder="ROLETA&#10;PROMO2026" spellcheck="false"></textarea>
+
+                <div class="row">
+                  <button class="btn" type="button" onclick="salvarCodigosRoleta()">Salvar códigos</button>
+                  <button class="btn secondary" type="button" onclick="carregarCodigosRoleta()">Recarregar</button>
+                </div>
+
+                <p class="result" id="adminRoletaMsg" role="status" aria-live="polite"></p>
+              </article>
+
+              <article class="admin-code-card">
+                <div class="admin-code-head">
+                  <span class="admin-code-ico gold ico-gift" aria-hidden="true"></span>
+                  <div>
+                    <h3>Códigos de bônus</h3>
+                    <p>Cada código tem seu próprio valor e 1 resgate por cliente.</p>
+                  </div>
+                </div>
+
+                <div id="adminBonusLista" class="bonus-lista"></div>
+
+                <div class="bonus-add">
+                  <input id="adminNovoCodigo" placeholder="CÓDIGO" maxlength="24" class="uppercase">
+                  <input id="adminNovoValor" type="number" min="0.01" step="0.01" placeholder="Valor R$" inputmode="decimal">
+                  <button class="btn" type="button" onclick="adicionarCodigoBonus()">Adicionar</button>
+                </div>
+
+                <div class="row">
+                  <button class="btn" type="button" onclick="salvarCodigosBonus()">Salvar todos</button>
+                  <button class="btn secondary" type="button" onclick="carregarCodigosBonus()">Recarregar</button>
+                </div>
+
+                <p class="result" id="adminBonusMsg" role="status" aria-live="polite"></p>
+              </article>
+            </div>
+          </section>
+
+          <!-- CONFIGURAÇÕES -->
+          <section class="admin-block" id="sec-config">
+            <div class="admin-block-head">
+              <div>
+                <h2>Configurações</h2>
+                <p>Link do grupo e credenciais do gateway.</p>
+              </div>
+            </div>
+
+            <article class="admin-action">
+              <span class="admin-action-ico green ico-message" aria-hidden="true"></span>
+              <div class="admin-action-body">
+                <h3>Link do grupo</h3>
+                <p>Este link aparece no botão verde do canto da tela em todas as páginas.</p>
+
+                <div class="form-inline">
+                  <input id="adminLinkGrupo" placeholder="https://chat.whatsapp.com/...">
+                  <button class="btn" type="button" onclick="salvarLinkGrupo()">Salvar link</button>
+                  <button class="btn secondary" type="button" onclick="carregarLinkGrupo()">Recarregar</button>
+                </div>
+
+                <p class="result" id="adminLinkGrupoMsg" role="status" aria-live="polite"></p>
+              </div>
+            </article>
+
+            <article class="admin-action">
+              <span class="admin-action-ico ico-key" aria-hidden="true"></span>
+              <div class="admin-action-body">
+                <h3>Gateway de pagamento</h3>
+                <p>NexasPay — credenciais do relay na VPS.</p>
+
+                <div class="form-grid">
+                  <input id="adminGatewayUrl" placeholder="URL do relay (https://.../relay)" class="form-full">
+                  <span class="form-secret form-full">
+                    <input id="adminGatewayToken" type="password" placeholder="Token do relay" autocomplete="off">
+                    <button class="password-toggle" type="button" aria-label="Mostrar token" aria-pressed="false" onclick="alternarSenha(this,'adminGatewayToken')"></button>
+                  </span>
+                  <input id="adminGatewayWebhook" placeholder="Token do webhook (opcional)" class="form-full">
+                </div>
+
+                <div class="row">
+                  <button class="btn" type="button" onclick="adminSalvarGateway()">Salvar chaves</button>
+                  <button class="btn secondary" type="button" onclick="adminCarregarGateway()">Recarregar</button>
+                  <button class="btn secondary" type="button" onclick="adminTestarGateway()">Testar conexão</button>
+                </div>
+
+                <p class="result" id="adminGatewayMsg" role="status" aria-live="polite"></p>
+              </div>
+            </article>
+          </section>
+
         </div>
-
-        <article class="admin-action">
-          <span class="admin-action-ico ico-key" aria-hidden="true"></span>
-          <div style="flex:1 1 100%">
-            <h3>Chaves da gateway</h3>
-
-            <div class="form-grid">
-              <input id="adminGatewayUrl" placeholder="URL do relay (https://.../relay)" style="grid-column:1/-1">
-              <input id="adminGatewayToken" placeholder="Token do relay" style="grid-column:1/-1">
-              <input id="adminGatewayWebhook" placeholder="Token do webhook (opcional)" style="grid-column:1/-1">
-            </div>
-
-            <div class="row" style="margin-top:10px">
-              <button class="btn" onclick="adminSalvarGateway()">Salvar chaves</button>
-              <button class="btn secondary" onclick="adminCarregarGateway()">Recarregar</button>
-              <button class="btn secondary" onclick="adminTestarGateway()">Testar conexão</button>
-            </div>
-
-            <p class="result" id="adminGatewayMsg" role="status" aria-live="polite"></p>
-          </div>
-        </article>
-      </section>
-
+      </div>
     </div>
   </main>
 
@@ -483,7 +587,7 @@
   <script src="pagamentos.js"></script>
   <script src="script.js"></script>
 
-  <!-- Script inline: só o que o admin.html original já fazia -->
+  <!-- Script inline: só o que o admin.html original já fazia + navegação -->
   <script>
     function mostrarPainel() {
       if (sessionStorage.getItem('admin_taxinexo') === 'sim') {
@@ -500,6 +604,37 @@
       mostrarPainel();
       carregarCodigosBonus();
     });
+
+    // Navegação por seções (rolagem suave + item ativo)
+    function irParaSecao(id) {
+      const alvo = document.getElementById(id);
+      if (!alvo) return;
+      const topo = alvo.getBoundingClientRect().top + window.scrollY - 90;
+      window.scrollTo({ top: Math.max(0, topo), behavior: 'smooth' });
+      document.querySelectorAll('.admin-nav-item').forEach(b => {
+        b.classList.toggle('ativo', b.dataset.alvo === id);
+      });
+    }
+    window.irParaSecao = irParaSecao;
+
+    document.querySelectorAll('.admin-nav-item').forEach(btn => {
+      btn.addEventListener('click', () => irParaSecao(btn.dataset.alvo));
+    });
+
+    // Mantém o item do menu sincronizado com a seção visível
+    if ('IntersectionObserver' in window) {
+      const secoes = [...document.querySelectorAll('.admin-block')];
+      const observador = new IntersectionObserver(entradas => {
+        entradas.forEach(entrada => {
+          if (!entrada.isIntersecting) return;
+          const id = entrada.target.id;
+          document.querySelectorAll('.admin-nav-item').forEach(b => {
+            b.classList.toggle('ativo', b.dataset.alvo === id);
+          });
+        });
+      }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
+      secoes.forEach(s => observador.observe(s));
+    }
   </script>
 
   <!-- Botão flutuante WhatsApp -->

@@ -70,9 +70,20 @@ const planos = [
 // UTILITÁRIOS
 // ------------------------------------------------------------
 const fmtBRL = (v) => 'R$ ' + Number(v || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const fmtData = (iso) => iso ? new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-';
+const fmtData = (iso) => {
+  if (!iso) return '-';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '-';
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+};
 const hoje = () => new Date().toISOString().split('T')[0];
 const el = (id) => document.getElementById(id);
+const valorTempo = (v) => {
+  const n = Number(v);
+  if (isFinite(n) && n > 0) return n;
+  const d = Date.parse(v);
+  return isFinite(d) ? d : 0;
+};
 
 // Índices manuais: evitam orderByChild (que exige .indexOn nas regras do Firebase).
 const emailKey = (email) => btoa(String(email).toLowerCase()).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
@@ -953,40 +964,48 @@ async function confirmarSaque(ev) {
 // ------------------------------------------------------------
 async function entrarAdmin() {
   if (!ADMIN_CONFIG.senha) await carregarConfigAdmin();
-  if (el('adminSenha').value !== ADMIN_CONFIG.senha) return setMensagem('adminMsg', 'Senha incorreta.', 'error');
+  const senha = String(el('adminSenha')?.value || '');
+  if (!ADMIN_CONFIG.senha) return setMensagem('adminMsg', 'Configuração indisponível. Recarregue a página.', 'error');
+  if (senha !== ADMIN_CONFIG.senha) return setMensagem('adminMsg', 'Senha incorreta.', 'error');
   sessionStorage.setItem('admin_taxinexo', 'sim');
+  setMensagem('adminMsg', 'Acesso liberado.', 'success');
   carregarAdmin();
 }
 async function carregarAdmin() {
   if (sessionStorage.getItem('admin_taxinexo') !== 'sim') return;
-  if (!db) return;
+  if (!db) return toast('Firebase não conectado.');
   try {
-    const [us, inv, saq, tx] = await Promise.all([
+    const [us, inv, saq, tx, ctrl] = await Promise.all([
       db.child('usuarios').once('value'),
       db.child('investimentos').once('value'),
       db.child('saques').once('value'),
-      db.child('transacoes').once('value')
+      db.child('transacoes').once('value'),
+      db.child('controle/saques_bloqueados').once('value')
     ]);
     const usuarios = Object.values(us.val() || {});
     const investimentos = Object.values(inv.val() || {});
     const saques = Object.values(saq.val() || {});
     const transacoes = Object.values(tx.val() || {});
-    ADMIN_CACHE = { usuarios: us.val() || {}, investimentos: inv.val() || {}, saques: saques, transacoes: transacoes };
+    ADMIN_CACHE = { usuarios: us.val() || {}, investimentos: inv.val() || {}, saques: saques, transacoes: transacoes, controle: ctrl.val() || {} };
     // Mapa de indicados calculado UMA vez (evita varrer todos os usuários por linha)
     ADMIN_CACHE.indicados = {};
     for (const u of usuarios) {
       if (u && u.indicado_por) ADMIN_CACHE.indicados[u.indicado_por] = (ADMIN_CACHE.indicados[u.indicado_por] || 0) + 1;
     }
     const soma = (arr, campo) => arr.reduce((a, x) => a + (Number(x[campo]) || 0), 0);
+    const saquesPagos = saques.filter(s => statusTipo(s.status) === 'ok');
+    const saquesPendentes = saques.filter(s => statusTipo(s.status) === 'warn');
 
     if (el('adminUsuarios')) el('adminUsuarios').textContent = usuarios.length;
     if (el('adminInvestimentos')) el('adminInvestimentos').textContent = investimentos.filter(i => i.status === 'ativo').length;
     if (el('adminTotalInvestido')) el('adminTotalInvestido').textContent = fmtBRL(soma(investimentos, 'valor_aplicado'));
     if (el('adminTotalRendimentos')) el('adminTotalRendimentos').textContent = fmtBRL(soma(usuarios, 'rendimentos'));
-    if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saques.filter(s => s.status === 'pago'), 'valor_liquido'));
+    if (el('adminTotalSaques')) el('adminTotalSaques').textContent = fmtBRL(soma(saquesPagos, 'valor_liquido'));
+    if (el('adminSaquesPendentes')) el('adminSaquesPendentes').textContent = saquesPendentes.length;
+    if (el('adminSaldoContas')) el('adminSaldoContas').textContent = fmtBRL(soma(usuarios, 'saldo'));
 
     if (el('adminSaldoGateway')) {
-      // Saldo calculado das transaçµes já carregadas — sem ida extra ao Worker
+      // Saldo calculado das transações já carregadas — sem ida extra ao Worker
       let disp = 0;
       for (const t of transacoes) {
         const v = Number(t.valor || 0);
@@ -997,31 +1016,152 @@ async function carregarAdmin() {
       el('adminSaldoGateway').textContent = fmtBRL(disp);
     }
 
-    const tbody = el('adminRendimentosBody');
-    if (tbody) {
-      const ativos = investimentos.filter(i => i.status === 'ativo');
-      tbody.innerHTML = ativos.length ? ativos.map(i => `<tr>
-        <td>${i.usuario_nome || '-'}</td><td>${i.plano_nome || '-'}</td>
-        <td>${fmtBRL(i.rendimento_diario)}</td><td>${Number(i.dias_pagos || 0)}/${Number(i.duracao_dias || 0)}</td>
-        <td>${fmtBRL(i.rendimento_pago)}</td>
-      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;">Nenhum investimento ativo.</td></tr>';
-    }
-
-    const tSaques = el('adminSaquesBody');
-    if (tSaques) {
-      tSaques.innerHTML = saques.length ? saques.slice().reverse().slice(0, 50).map(s => `<tr>
-        <td>${s.usuario_nome || '-'}</td><td>${fmtBRL(s.valor_bruto)}</td>
-        <td>${fmtBRL(s.valor_liquido)}</td><td>${fmtData(s.criado_em)}</td><td>${s.status}</td>
-      </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;">Nenhum saque.</td></tr>';
-    }
-
+    renderSaqueStatus(ADMIN_CACHE.controle);
+    renderAdminRendimentos();
+    renderAdminSaques();
     renderAdminUsuarios();
     renderAdminInvestimentos();
     renderAdminSelectUsuarios();
-  } catch (e) { console.error('[Admin]', e); }
+
+    if (el('adminUltimaAtualizacao')) {
+      el('adminUltimaAtualizacao').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+  } catch (e) {
+    console.error('[Admin]', e);
+    toast('Erro ao carregar o painel: ' + e.message);
+    if (el('adminUltimaAtualizacao')) el('adminUltimaAtualizacao').textContent = 'Falha ao atualizar';
+  }
 }
 
-let ADMIN_CACHE = { usuarios: {}, investimentos: {}, saques: [], transacoes: [] };
+// ---------- Status (saques, investimentos) ----------
+function statusTipo(status) {
+  const s = String(status || '').toLowerCase();
+  if (['pago', 'paga', 'aprovada', 'aprovado', 'completed', 'concluido', 'concluído', 'liberado', 'liberada', 'ativo'].includes(s)) return 'ok';
+  if (['pendente', 'processando', 'aguardando', 'em processamento', 'pending'].includes(s)) return 'warn';
+  if (['recusado', 'recusada', 'cancelado', 'cancelada', 'bloqueado', 'bloqueada', 'falha', 'failed', 'rejected', 'erro', 'error'].includes(s)) return 'erro';
+  return 'neutro';
+}
+function statusPill(status) {
+  const s = String(status || '').trim();
+  const tipo = statusTipo(s);
+  const rotulo = s ? s.charAt(0).toUpperCase() + s.slice(1) : '-';
+  return `<span class="status-pill ${tipo}">${escTexto(rotulo)}</span>`;
+}
+
+function renderAdminRendimentos() {
+  const tbody = el('adminRendimentosBody'); if (!tbody) return;
+  const ativos = Object.values(ADMIN_CACHE.investimentos || {}).filter(i => i && i.status === 'ativo');
+  if (el('adminRendimentosCount')) el('adminRendimentosCount').textContent = ativos.length;
+  tbody.innerHTML = ativos.length ? ativos.map(i => {
+    const dias = Number(i.dias_pagos || 0), total = Number(i.duracao_dias || 0);
+    const pct = total > 0 ? Math.min(100, Math.round(dias / total * 100)) : 0;
+    return `<tr>
+      <td><strong>${escTexto(i.usuario_nome || '-')}</strong><small>${escTexto(i.usuario_email || '')}</small></td>
+      <td>${escTexto(i.plano_nome || '-')}</td>
+      <td>${fmtBRL(i.rendimento_diario)}</td>
+      <td><div class="mini-progress"><span style="width:${pct}%"></span></div><small>${dias}/${total} · ${pct}%</small></td>
+      <td>${fmtBRL(i.rendimento_pago)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="5" class="empty">Nenhum investimento ativo.</td></tr>';
+}
+
+function renderAdminSaques() {
+  const tbody = el('adminSaquesBody'); if (!tbody) return;
+  const filtro = String(el('adminFiltroSaques')?.value || 'todos');
+  let lista = (ADMIN_CACHE.saques || []).slice().filter(Boolean);
+  lista.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
+  if (filtro !== 'todos') {
+    const alvo = { pagos: 'ok', pendentes: 'warn', recusados: 'erro' }[filtro] || 'neutro';
+    lista = lista.filter(s => statusTipo(s.status) === alvo);
+  }
+  if (el('adminSaquesCount')) el('adminSaquesCount').textContent = lista.length;
+  tbody.innerHTML = lista.length ? lista.slice(0, 100).map(s => {
+    const bruto = Number(s.valor_bruto) || 0;
+    const liq = Number(s.valor_liquido) || 0;
+    const taxa = Math.max(0, Math.round((bruto - liq) * 100) / 100);
+    return `<tr>
+      <td><strong>${escTexto(s.usuario_nome || '-')}</strong><small>${escTexto(s.usuario_email || '')}</small></td>
+      <td>${fmtBRL(bruto)}</td>
+      <td class="td-muted">${fmtBRL(taxa)}</td>
+      <td><strong class="td-money">${fmtBRL(liq)}</strong></td>
+      <td class="td-muted">${fmtData(s.criado_em)}</td>
+      <td>${statusPill(s.status)}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="6" class="empty">Nenhum saque encontrado.</td></tr>';
+}
+
+// ---------- Controle global de saques ----------
+function renderSaqueStatus(estado) {
+  const bloqueado = !!(estado && estado.bloqueado);
+  const motivo = String((estado && estado.mensagem) || '').trim();
+  const data = estado && estado.atualizado_em ? fmtData(estado.atualizado_em) : '';
+  const rotulo = bloqueado ? 'Saques bloqueados' : 'Saques liberados';
+
+  const card = el('saqueStatusCard');
+  if (card) card.dataset.estado = bloqueado ? 'bloqueado' : 'liberado';
+  const acao = el('adminAcaoSaques');
+  if (acao) acao.dataset.estado = bloqueado ? 'bloqueado' : 'liberado';
+
+  if (el('saqueStatusTitulo')) el('saqueStatusTitulo').textContent = rotulo;
+  if (el('saqueStatusDesc')) {
+    el('saqueStatusDesc').textContent = bloqueado
+      ? (motivo || 'Os clientes não podem solicitar saques neste momento.')
+      : 'Os clientes podem solicitar saques normalmente.';
+  }
+  if (el('saqueStatusData')) el('saqueStatusData').textContent = data ? 'Atualizado em ' + data : 'Nenhuma alteração registrada.';
+  if (el('adminAcaoSaquesDesc')) el('adminAcaoSaquesDesc').textContent = bloqueado ? 'Saques bloqueados para todos os clientes.' : 'Saques liberados para todos os clientes.';
+
+  const chip = el('adminTopSaqueChip');
+  if (chip) {
+    chip.dataset.estado = bloqueado ? 'bloqueado' : 'liberado';
+    const span = chip.querySelector('span');
+    if (span) span.textContent = rotulo;
+  }
+
+  const side = el('adminSideSaqueStatus');
+  if (side) {
+    side.dataset.estado = bloqueado ? 'bloqueado' : 'liberado';
+    side.innerHTML = '<i aria-hidden="true"></i> ' + (bloqueado ? 'Bloqueados' : 'Liberados');
+  }
+  if (el('adminSideSaqueDesc')) {
+    el('adminSideSaqueDesc').textContent = bloqueado
+      ? (motivo || 'Clientes não podem sacar agora.')
+      : 'Clientes podem solicitar normalmente.';
+  }
+
+  const btnLiberar = el('btnLiberarSaques');
+  const btnBloquear = el('btnBloquearSaques');
+  if (btnLiberar) btnLiberar.disabled = !bloqueado;
+  if (btnBloquear) btnBloquear.disabled = bloqueado;
+
+  const campo = el('adminMotivoBloqueio');
+  if (campo && document.activeElement !== campo) campo.value = bloqueado ? motivo : '';
+}
+
+async function definirBloqueioSaques(bloquear) {
+  if (!db) return toast('Firebase não conectado.');
+  const motivo = String(el('adminMotivoBloqueio')?.value || '').trim();
+  const mensagem = bloquear ? (motivo || 'Saques temporariamente bloqueados.') : '';
+  if (bloquear && !confirm('Bloquear os saques de todos os clientes agora?')) return;
+
+  const btn = bloquear ? el('btnBloquearSaques') : el('btnLiberarSaques');
+  const original = btn ? btn.innerHTML : '';
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Salvando...'; }
+  try {
+    const estado = { bloqueado: !!bloquear, mensagem, atualizado_em: new Date().toISOString() };
+    await db.child('controle/saques_bloqueados').set(estado);
+    ADMIN_CACHE.controle = estado;
+    renderSaqueStatus(estado);
+    toast(bloquear ? 'Saques bloqueados para todos os clientes.' : 'Saques liberados para todos os clientes.');
+    carregarAdmin();
+  } catch (e) {
+    toast('Erro ao atualizar o controle de saques: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = original; }
+  }
+}
+
+let ADMIN_CACHE = { usuarios: {}, investimentos: {}, saques: [], transacoes: [], controle: {} };
 
 async function adminAtualizarSaldoGateway() {
   const elSaldo = el('adminSaldoGateway');
@@ -1040,16 +1180,19 @@ function renderAdminUsuarios() {
   let lista = Object.entries(ADMIN_CACHE.usuarios || {}).map(([id, u]) => ({ id, ...u }));
   if (busca) lista = lista.filter(u => [u.nome, u.email, u.cpf, u.id].some(v => String(v || '').toLowerCase().includes(busca)));
   lista.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
+  if (el('adminUsuariosCount')) el('adminUsuariosCount').textContent = lista.length;
   tbody.innerHTML = lista.length ? lista.slice(0, 300).map(u => {
     const indicados = ADMIN_CACHE.indicados?.[u.id] || 0;
+    const google = String(u.senha_hash || '') === 'GOOGLE_ONLY_NO_PASSWORD';
+    const contato = u.celular || '';
     return `<tr>
-      <td><strong>${escTexto(u.nome || '-')}</strong><small>${escTexto(u.celular || '')}</small></td>
+      <td><strong>${escTexto(u.nome || '-')}</strong><small>${google ? '<span class="badge-google">Google</span>' : ''}${escTexto(contato)}</small></td>
       <td>${escTexto(u.email || '-')}<small>CPF ${escTexto(u.cpf || '-')}</small></td>
-      <td><strong style="color:#ffd54a">${fmtBRL(u.saldo)}</strong></td>
+      <td><strong class="td-money">${fmtBRL(u.saldo)}</strong></td>
       <td>${fmtBRL(u.total_depositado)}</td>
-      <td>${indicados}</td>
-      <td>${u.criado_em ? fmtData(u.criado_em) : '-'}</td>
-      <td><button class="mini-btn danger" onclick="adminExcluirUsuario('${u.id}', ${JSON.stringify(escTexto(u.nome || ''))})">Excluir</button></td>
+      <td><span class="mini-pill">${indicados}</span></td>
+      <td class="td-muted">${u.criado_em ? fmtData(u.criado_em) : '-'}</td>
+      <td class="td-acoes"><button class="mini-btn danger" type="button" onclick="adminExcluirUsuario('${escTexto(u.id)}')">Excluir</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';
 }
@@ -1059,7 +1202,8 @@ function renderAdminInvestimentos() {
   const busca = String(el('adminBuscaInvest')?.value || '').trim().toLowerCase();
   let lista = Object.values(ADMIN_CACHE.investimentos || {});
   if (busca) lista = lista.filter(i => [i.usuario_nome, i.plano_nome, i.usuario_email].some(v => String(v || '').toLowerCase().includes(busca)));
-  lista.sort((a, b) => Number(b.criado_em || 0) - Number(a.criado_em || 0));
+  lista.sort((a, b) => valorTempo(b.criado_em) - valorTempo(a.criado_em));
+  if (el('adminInvestCount')) el('adminInvestCount').textContent = lista.length;
   tbody.innerHTML = lista.length ? lista.slice(0, 300).map(i => {
     const dias = Number(i.dias_pagos || 0), total = Number(i.duracao_dias || 0);
     const pct = total > 0 ? Math.min(100, Math.round(dias / total * 100)) : 0;
@@ -1068,9 +1212,9 @@ function renderAdminInvestimentos() {
       <td>${escTexto(i.plano_nome || '-')}</td>
       <td>${fmtBRL(i.valor_aplicado)}</td>
       <td>${fmtBRL(i.rendimento_diario)}</td>
-      <td>${dias}/${total} <span class="badge-ok">${pct}%</span></td>
+      <td><div class="mini-progress"><span style="width:${pct}%"></span></div><small>${dias}/${total} · ${pct}%</small></td>
       <td>${fmtBRL(i.rendimento_pago)}</td>
-      <td><span class="${i.status === 'ativo' ? 'badge-ok' : 'badge-off'}">${escTexto(String(i.status || '-').toUpperCase())}</span></td>
+      <td>${statusPill(i.status)}</td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">Nenhum investimento encontrado.</td></tr>';
 }
@@ -1138,18 +1282,28 @@ async function adminAjustarSaldo(sinal) {
   carregarAdmin();
 }
 
-async function adminExcluirUsuario(id, nome) {
-  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
+async function adminExcluirUsuario(id) {
   if (!db) return toast('Firebase não conectado.');
-  const snap = await db.child('usuarios/' + id).once('value');
-  const u = snap.val() || {};
-  await db.child('usuarios/' + id).remove();
-  if (u.email) await db.child('email_index/' + emailKey(u.email)).remove();
-  if (u.codigo_indicacao) await db.child('codigo_index/' + u.codigo_indicacao).remove();
-  await db.child('transacoes_usuario/' + id).remove();
-  await db.child('indicados_index/' + id).remove();
-  toast('Usuário excluído.');
-  carregarAdmin();
+  const cache = (ADMIN_CACHE.usuarios || {})[id] || {};
+  const nome = cache.nome || id;
+  if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
+  try {
+    const snap = await db.child('usuarios/' + id).once('value');
+    const u = snap.val() || cache;
+    await db.child('usuarios/' + id).remove();
+    if (u.email) await db.child('email_index/' + emailKey(u.email)).remove();
+    if (u.codigo_indicacao) await db.child('codigo_index/' + u.codigo_indicacao).remove();
+    await db.child('transacoes_usuario/' + id).remove();
+    await db.child('saques_usuario/' + id).remove();
+    await db.child('investimentos_usuario/' + id).remove();
+    await db.child('bonus_resgates/' + id).remove();
+    await db.child('indicados_index/' + id).remove();
+    if (u.indicado_por) await db.child('indicados_index/' + u.indicado_por + '/' + id).remove();
+    toast('Usuário excluído.');
+    carregarAdmin();
+  } catch (e) {
+    toast('Erro ao excluir: ' + e.message);
+  }
 }
 
 async function adminCarregarBanners() {
@@ -1158,16 +1312,20 @@ async function adminCarregarBanners() {
     const r = await fetch(TAX_API + '/admin/marketing/list', { headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') } });
     const j = await r.json();
     const lista = j.banners || [];
+    if (el('adminBannersCount')) el('adminBannersCount').textContent = lista.length;
     tbody.innerHTML = lista.length ? lista.map(b => `<tr>
-      <td><img src="${escTexto(b.image_url)}" style="max-width:120px;max-height:60px;border-radius:6px;"></td>
-      <td><span class="badge-ok">${escTexto(b.type)}</span></td>
-      <td style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${b.link ? escTexto(b.link) : '—'}</td>
-      <td>
-        <button class="mini-btn" onclick="adminEditarBannerLink('${escTexto(b.id)}')">Editar link</button>
-        <button class="mini-btn danger" onclick="adminExcluirBanner('${escTexto(b.id)}')">Excluir</button>
+      <td><img src="${escTexto(b.image_url)}" alt="Banner" loading="lazy" class="banner-thumb"></td>
+      <td><span class="status-pill ${b.type === 'popup' ? 'violet' : 'info'}">${escTexto(b.type === 'popup' ? 'Popup' : 'Carrossel')}</span></td>
+      <td class="td-link" title="${escTexto(b.link || '')}">${b.link ? escTexto(b.link) : '—'}</td>
+      <td class="td-acoes">
+        <button class="mini-btn" type="button" onclick="adminEditarBannerLink('${escTexto(b.id)}')">Editar link</button>
+        <button class="mini-btn danger" type="button" onclick="adminExcluirBanner('${escTexto(b.id)}')">Excluir</button>
       </td>
     </tr>`).join('') : '<tr><td colspan="4" class="empty">Nenhum banner cadastrado.</td></tr>';
-  } catch (e) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Erro ao carregar.</td></tr>'; }
+  } catch (e) {
+    if (el('adminBannersCount')) el('adminBannersCount').textContent = '0';
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">Erro ao carregar banners.</td></tr>';
+  }
 }
 async function adminEnviarBanner() {
   const arquivo = el('bannerArquivo')?.files?.[0];
@@ -1233,10 +1391,10 @@ async function adminTestarGateway() {
     setMensagem('adminGatewayMsg', r.sucesso ? `Gateway OK — saldo ${fmtBRL(r.available)}` : 'Gateway não respondeu.', r.sucesso ? 'success' : 'error');
   } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
 }
-async function processarRendimentos() {
+async function processarRendimentos(ev) {
   if (!db) return toast('Firebase não conectado.');
   if (!confirm('Processar rendimentos de TODOS os clientes agora?')) return;
-  const btn = event && event.target;
+  const btn = ev && ev.currentTarget ? ev.currentTarget : (ev && ev.target);
   const original = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Verificando saldo...'; }
   try {
@@ -1304,16 +1462,14 @@ async function processarRendimentos() {
   }
 }
 async function alternarBloqueioSaques() {
-  if (!db) return;
-  const s = await db.child('controle/saques_bloqueados').once('value');
-  const atual = s.val() || { bloqueado: false };
-  const bloqueado = !atual.bloqueado;
-  const mensagem = bloqueado
-    ? (el('adminMotivoBloqueio') && el('adminMotivoBloqueio').value.trim()) || 'Saques temporariamente bloqueados.'
-    : '';
-  await db.child('controle/saques_bloqueados').set({ bloqueado, mensagem, atualizado_em: new Date().toISOString() });
-  toast(bloqueado ? 'Saques bloqueados.' : 'Saques liberados.');
-  carregarAdmin();
+  if (!db) return toast('Firebase não conectado.');
+  try {
+    const s = await db.child('controle/saques_bloqueados').once('value');
+    const atual = s.val() || { bloqueado: false };
+    return definirBloqueioSaques(!atual.bloqueado);
+  } catch (e) {
+    toast('Erro ao ler o controle de saques: ' + e.message);
+  }
 }
 
 // ------------------------------------------------------------
