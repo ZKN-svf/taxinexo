@@ -54,7 +54,7 @@ const CONFIG = {
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo (diária × ciclo = retorno)
+// Planos do Taxinexo (diaria x ciclo = retorno)
 const planos = [
   { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
   { id: 1, nome: 'Plano 15', entrada: 15, diaria: 3, ciclo: 10, retorno: 30 },
@@ -185,7 +185,27 @@ function setMensagem(id, texto, estado) {
   e.textContent = texto;
   if (estado) e.dataset.state = estado; else delete e.dataset.state;
 }
-function toast(msg) { alert(msg); }
+function toast(msg) {
+  try {
+    let box = document.getElementById('toastBox');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'toastBox';
+      box.className = 'toast-box';
+      document.body.appendChild(box);
+    }
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.setAttribute('role', 'status');
+    t.textContent = String(msg == null ? '' : msg);
+    box.appendChild(t);
+    requestAnimationFrame(() => t.classList.add('show'));
+    setTimeout(() => {
+      t.classList.remove('show');
+      setTimeout(() => t.remove(), 300);
+    }, 4600);
+  } catch (_) { alert(msg); }
+}
 
 // ------------------------------------------------------------
 // AUTENTICAÇÃO
@@ -361,7 +381,7 @@ function alternarAba(nome) {
   const inicio = el('abaInicio'), equipe = el('abaEquipe');
   if (inicio) inicio.classList.toggle('hidden', nome !== 'inicio');
   if (equipe) equipe.classList.toggle('hidden', nome !== 'equipe');
-  $$('.dash-tab').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  document.querySelectorAll('.dash-tab').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
   if (nome === 'equipe') carregarEquipe();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -387,7 +407,7 @@ async function carregarEquipe() {
 
     if (lista) {
       if (!indicados.length) {
-        lista.innerHTML = `<div class="team-empty"><span aria-hidden="true">🤝</span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
+        lista.innerHTML = `<div class="team-empty"><span class="team-empty-ico ico-handshake" aria-hidden="true"></span><h3>Sua equipe ainda está começando</h3><p>Compartilhe seu link de indicação e os nomes de quem se cadastrar aparecerão aqui.</p><button class="btn sm" onclick="copiarLinkIndicacao()">Copiar meu link</button></div>`;
       } else {
         lista.innerHTML = indicados.map(ind => {
           const inicial = String(ind.nome || '?').trim()[0]?.toUpperCase() || '?';
@@ -396,7 +416,7 @@ async function carregarEquipe() {
           const emailCurto = email.length > 26 ? email.slice(0, 24) + '…' : email;
           return `<div class="team-item">
             <div class="team-avatar">${escTexto(inicial)}</div>
-            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? ' • ' + data : ''}</small></div>
+            <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? '<span class="dot" aria-hidden="true"></span>' + data : ''}</small></div>
             <span class="team-status ${ind.status === 'convertido' || ind.investiu ? 'investiu' : 'pendente'}">${ind.status === 'convertido' || ind.investiu ? 'CONVERTIDO' : 'PENDENTE'}</span>
           </div>`;
         }).join('');
@@ -419,7 +439,7 @@ async function carregarEquipe() {
       }
       if (btn) {
         btn.disabled = !concluida || jaResgatou;
-        btn.textContent = jaResgatou ? 'RESGATADO ✓' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - convertidos.length)}`);
+        btn.textContent = jaResgatou ? 'RESGATADO' : (concluida ? 'RESGATAR' : `FALTAM ${Math.max(0, meta.qtd - convertidos.length)}`);
         btn.onclick = () => resgatarMeta(meta.qtd, meta.premio);
       }
     }
@@ -501,7 +521,7 @@ async function carregarPlanos() {
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('retorno')}</span><dt>Total recebido</dt><dd>${fmtBRL(p.retorno)}</dd></div>
       </dl>
       <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${p.nome}">
-        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span aria-hidden="true">→</span>
+        ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span class="ico ico-arrow" aria-hidden="true"></span>
       </button>
     </article>`;
   }));
@@ -518,7 +538,7 @@ async function escolherPlano(id) {
   }
   const sel = el('investirPlano'); if (sel) sel.value = String(id);
   const info = el('investirInfo');
-  if (info) info.textContent = `${p.nome} • Entrada ${fmtBRL(p.entrada)} • Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias • Total ${fmtBRL(p.retorno)}`;
+  if (info) info.textContent = `${p.nome} | Entrada ${fmtBRL(p.entrada)} | Diária ${fmtBRL(p.diaria)} por ${p.ciclo} dias | Total ${fmtBRL(p.retorno)}`;
   const dlg = el('investirDialog'); if (dlg) dlg.showModal();
 }
 
@@ -578,7 +598,7 @@ async function carregarInvestimentos() {
           <div class="invest-bar"><i style="width:${pct}%"></i></div>
         </div>
         ${ativo ? `<div class="invest-timer" data-proximo="${proxPagamentoCliente(inv)}">
-          <span class="invest-timer-ico" aria-hidden="true">⏱</span>
+          <span class="invest-timer-ico" aria-hidden="true"></span>
           <span class="invest-timer-txt">Próximo rendimento em <strong>--:--:--</strong></span>
         </div>` : ''}
       </article>`;
@@ -1344,7 +1364,7 @@ function renderBonusLista() {
   box.innerHTML = itens.length ? itens.map((x, i) => `<div class="bonus-item">
     <code>${escTexto(x.codigo)}</code>
     <strong>${fmtBRL(x.valor)}</strong>
-    <button class="bonus-del" title="Remover" onclick="removerCodigoBonus(${i})">×</button>
+    <button class="bonus-del" title="Remover" aria-label="Remover" onclick="removerCodigoBonus(${i})"></button>
   </div>`).join('') : '<p class="empty">Nenhum código cadastrado.</p>';
 }
 function adicionarCodigoBonus() {

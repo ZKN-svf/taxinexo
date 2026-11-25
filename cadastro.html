@@ -5,24 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Taxinexo | Cadastrar-se</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-premium.css">
 </head>
 <body class="auth-page">
   <main class="auth-shell">
     <header class="auth-brand"><img src="login-header.webp" alt="Taxinexo Investimento"></header>
     <section class="auth-card">
-      <h1><span class="user-icon" aria-hidden="true">♙</span>Cadastrar-se</h1>
+      <h1><span class="user-icon" aria-hidden="true"></span>Cadastrar-se</h1>
       <p class="auth-description">Preencha os dados abaixo para criar sua conta.</p>
       <form id="cadastroForm" onsubmit="event.preventDefault(); fazerCadastro()">
-        <label class="input-wrap"><span aria-hidden="true">♙</span><input id="nome" autocomplete="name" placeholder="Nome completo" aria-label="Nome completo" required></label>
-        <label class="input-wrap"><span aria-hidden="true">#</span><input id="cpf" inputmode="numeric" placeholder="CPF" aria-label="CPF" maxlength="14" oninput="formatarCPF(this)" required></label>
-        <label class="input-wrap"><span aria-hidden="true">☎</span><input id="celular" type="tel" inputmode="tel" placeholder="Celular" aria-label="Celular" maxlength="15" oninput="formatarCelular(this)" required></label>
-        <label class="input-wrap"><span aria-hidden="true">✉</span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
-        <label class="input-wrap"><span aria-hidden="true">⇩</span><input id="pix" placeholder="Chave Pix (CPF, CNPJ, e-mail, celular ou aleatória)" aria-label="Chave Pix" required></label>
-        <div class="input-wrap"><span aria-hidden="true">♙</span><input type="password" id="senha" autocomplete="new-password" placeholder="Crie sua senha" aria-label="Crie sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')">◉</button></div>
-        <div class="input-wrap"><span aria-hidden="true">♙</span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita sua senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')">◉</button></div>
-        <label class="input-wrap"><span aria-hidden="true">★</span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
+        <label class="input-wrap"><span class="ico ico-user" aria-hidden="true"></span><input id="nome" autocomplete="name" placeholder="Nome completo" aria-label="Nome completo" required></label>
+        <label class="input-wrap"><span class="ico ico-id" aria-hidden="true"></span><input id="cpf" inputmode="numeric" placeholder="CPF" aria-label="CPF" maxlength="14" oninput="formatarCPF(this)" required></label>
+        <label class="input-wrap"><span class="ico ico-phone" aria-hidden="true"></span><input id="celular" type="tel" inputmode="tel" placeholder="Celular" aria-label="Celular" maxlength="15" oninput="formatarCelular(this)" required></label>
+        <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
+        <label class="input-wrap"><span class="ico ico-key" aria-hidden="true"></span><input id="pix" placeholder="Chave Pix (CPF, CNPJ, e-mail, celular ou aleatória)" aria-label="Chave Pix" required></label>
+        <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="new-password" placeholder="Crie sua senha" aria-label="Crie sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
+        <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita sua senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')"></button></div>
+        <label class="input-wrap"><span class="ico ico-star" aria-hidden="true"></span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0;color:var(--muted);"><input type="checkbox" id="termos" required> Li e aceito os <a href="termos.html">termos de uso</a>.</label>
-        <button class="primary" type="submit">Cadastrar<span aria-hidden="true">→</span></button>
+        <button class="primary" type="submit">Cadastrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
       <p class="link">Já tem conta? <a href="index.html">Entrar</a></p>
     </section>
@@ -49,7 +50,7 @@
 
 <!-- Grupo WhatsApp -->
 <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
-  <span aria-hidden="true">💬</span> Grupo
+  <span class="ico ico-message" aria-hidden="true"></span> Grupo
 </a>
 </body>
 </html>

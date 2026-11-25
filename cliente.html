@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Taxinexo | Painel</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-premium.css">
 </head>
 <body class="dashboard">
   <header class="topbar">
     <a href="cliente.html"><img src="brand-transparent.png" alt="Taxinexo Investimento"></a>
     <div class="account">
-      <span class="user-icon" aria-hidden="true">♙</span>
+      <span class="user-icon" aria-hidden="true"></span>
       <p>Olá, <strong id="nomeUsuario">Usuário</strong><small id="userEmail">Cliente Taxinexo</small></p>
       <button class="sair-btn" onclick="sair()" title="Sair">Sair</button>
     </div>
@@ -39,15 +40,15 @@
       </section>
 
       <div class="quick-actions">
-        <button onclick="mostrarDeposito()"><span aria-hidden="true">⇩</span>Depositar <b>→</b></button>
-        <button onclick="mostrarSaque()"><span aria-hidden="true">⇧</span>Sacar <b>→</b></button>
-        <a href="#planos"><span aria-hidden="true">↗</span>Meus Planos <b>→</b></a>
-        <button onclick="mostrarExtrato()"><span aria-hidden="true">▤</span>Extrato <b>→</b></button>
+        <button onclick="mostrarDeposito()"><span class="qa-ico"><span class="ico ico-download" aria-hidden="true"></span></span><em>Depositar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
+        <button onclick="mostrarSaque()"><span class="qa-ico"><span class="ico ico-upload" aria-hidden="true"></span></span><em>Sacar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
+        <a href="#planos"><span class="qa-ico"><span class="ico ico-trending" aria-hidden="true"></span></span><em>Meus Planos</em><b class="ico ico-chev" aria-hidden="true"></b></a>
+        <button onclick="mostrarExtrato()"><span class="qa-ico"><span class="ico ico-list" aria-hidden="true"></span></span><em>Extrato</em><b class="ico ico-chev" aria-hidden="true"></b></button>
       </div>
 
       <section class="invite-box" id="indicacaoBox">
         <div class="invite-top">
-          <div class="invite-ico" aria-hidden="true">★</div>
+          <div class="invite-ico ico-star" aria-hidden="true"></div>
           <div class="invite-txt">
             <h2>Indique e ganhe</h2>
             <p>Ganhe <strong>R$ 2,00</strong> por amigo que se cadastrar pelo seu link e ativar um plano pago.</p>
@@ -111,7 +112,7 @@
       </section>
 
       <section class="panel movements">
-        <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato →</button></div>
+        <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato <span class="ico ico-arrow" aria-hidden="true"></span></button></div>
         <div id="extratoResumo"><p class="empty-state">Carregando...</p></div>
       </section>
       </div><!-- /abaInicio -->
@@ -120,7 +121,7 @@
         <section class="panel team-panel">
           <div class="section-heading"><h2>EQUIPE</h2><span>Seu time de indicados</span></div>
           <div class="team-total">
-            <div class="team-total-ico" aria-hidden="true">👥</div>
+            <div class="team-total-ico ico-users" aria-hidden="true"></div>
             <div><span>TOTAL INDICADOS</span><strong id="totalIndicados">0</strong></div>
             <div class="team-total-obs">Pessoas que se cadastraram pelo seu link e ativaram plano PAGO</div>
           </div>
@@ -131,7 +132,7 @@
           <div class="section-heading"><h2>METAS</h2><span>Alcance e resgate seus prêmios</span></div>
           <div class="goals-grid">
             <article class="goal-card" id="meta20">
-              <div class="goal-top"><span class="goal-ico">🥉</span><span class="goal-tag">META 01</span></div>
+              <div class="goal-top"><span class="goal-ico ico-medal goal-bronze" aria-hidden="true"></span><span class="goal-tag">META 01</span></div>
               <h3>INDIQUE 20 PESSOAS</h3>
               <p class="goal-prize">PRÊMIO <strong>R$ 15,00</strong></p>
               <div class="goal-progress"><span id="barra20"></span></div>
@@ -139,7 +140,7 @@
               <button class="goal-btn" id="btnMeta20" disabled>RESGATAR</button>
             </article>
             <article class="goal-card" id="meta50">
-              <div class="goal-top"><span class="goal-ico">🥈</span><span class="goal-tag">META 02</span></div>
+              <div class="goal-top"><span class="goal-ico ico-medal goal-silver" aria-hidden="true"></span><span class="goal-tag">META 02</span></div>
               <h3>INDIQUE 50 PESSOAS</h3>
               <p class="goal-prize">PRÊMIO <strong>R$ 35,00</strong></p>
               <div class="goal-progress"><span id="barra50"></span></div>
@@ -147,7 +148,7 @@
               <button class="goal-btn" id="btnMeta50" disabled>RESGATAR</button>
             </article>
             <article class="goal-card" id="meta100">
-              <div class="goal-top"><span class="goal-ico">🏆</span><span class="goal-tag">META 03</span></div>
+              <div class="goal-top"><span class="goal-ico ico-trophy goal-gold" aria-hidden="true"></span><span class="goal-tag">META 03</span></div>
               <h3>INDIQUE 100 PESSOAS</h3>
               <p class="goal-prize">PRÊMIO <strong>R$ 50,00</strong></p>
               <div class="goal-progress"><span id="barra100"></span></div>
@@ -165,8 +166,8 @@
   <!-- Depósito -->
   <dialog class="panel money-dialog" id="depositoDialog" aria-labelledby="depositoTitulo">
     <form id="depositoForm" novalidate>
-      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
-      <h2 id="depositoTitulo"><span aria-hidden="true">⇩</span> Depositar</h2>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar"></button>
+      <h2 id="depositoTitulo"><span class="ico ico-download" aria-hidden="true"></span> Depositar</h2>
       <div id="pixEtapa1">
         <label for="depositoValor">Valor do depósito</label>
         <div class="input-wrap"><span aria-hidden="true">R$</span><input id="depositoValor" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-describedby="depositoMin depositoMsg"></div>
@@ -178,7 +179,7 @@
           <button type="button" data-valor="200">R$ 200</button><button type="button" data-valor="500">R$ 500</button>
         </div>
         <p class="reward-result" id="depositoMsg" role="status" aria-live="polite"></p>
-        <button class="primary" type="submit" id="btnGerarPix">Gerar PIX <span aria-hidden="true">→</span></button>
+        <button class="primary" type="submit" id="btnGerarPix">Gerar PIX <span class="ico ico-arrow" aria-hidden="true"></span></button>
       </div>
       <div id="pixEtapa2" style="display:none;text-align:center;">
         <h3 style="font-size:18px;">Pague com PIX</h3>
@@ -196,8 +197,8 @@
   <dialog class="panel money-dialog" id="saqueDialog" aria-labelledby="saqueTitulo">
     <form id="saqueForm" novalidate>
       <span class="fee-badge">TAXA DE 10%</span>
-      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
-      <h2 id="saqueTitulo"><span aria-hidden="true">⇧</span> Sacar</h2>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar"></button>
+      <h2 id="saqueTitulo"><span class="ico ico-upload" aria-hidden="true"></span> Sacar</h2>
       <label for="saquePix">Chave Pix</label>
       <div class="input-wrap"><input id="saquePix" placeholder="CPF, CNPJ, e-mail, celular ou chave aleatória" maxlength="80" autocomplete="off" spellcheck="false"></div>
       <small class="pix-tipo" id="saquePixTipo" aria-live="polite"></small>
@@ -216,8 +217,8 @@
   <!-- Investir -->
   <dialog class="panel money-dialog" id="investirDialog" aria-labelledby="investirTitulo">
     <form onsubmit="event.preventDefault(); confirmarInvestimento()" novalidate>
-      <button class="dialog-close" type="button" data-close aria-label="Fechar">×</button>
-      <h2 id="investirTitulo"><span aria-hidden="true">↗</span> Investir</h2>
+      <button class="dialog-close" type="button" data-close aria-label="Fechar"></button>
+      <h2 id="investirTitulo"><span class="ico ico-trending" aria-hidden="true"></span> Investir</h2>
       <label for="investirPlano">Escolha o plano</label>
       <div class="input-wrap">
         <select id="investirPlano" style="width:100%;padding:12px;border-radius:10px;background:#02142e;color:#fff;border:1px solid var(--line);"></select>
@@ -231,8 +232,8 @@
   <!-- Extrato -->
   <dialog class="panel money-dialog" id="extratoDialog" aria-labelledby="extratoTitulo">
     <form method="dialog">
-      <button class="dialog-close" type="submit" aria-label="Fechar">×</button>
-      <h2 id="extratoTitulo"><span aria-hidden="true">▤</span> Extrato</h2>
+      <button class="dialog-close" type="submit" aria-label="Fechar"></button>
+      <h2 id="extratoTitulo"><span class="ico ico-list" aria-hidden="true"></span> Extrato</h2>
       <div id="extratoLista"><p class="empty-state">Carregando...</p></div>
       <button class="primary" type="submit">Fechar</button>
     </form>
@@ -261,7 +262,7 @@
 
 <!-- Grupo WhatsApp -->
 <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
-  <span aria-hidden="true">💬</span> Grupo
+  <span class="ico ico-message" aria-hidden="true"></span> Grupo
 </a>
 </body>
 </html>

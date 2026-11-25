@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Taxinexo | Administração</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style-premium.css">
 </head>
 <body class="dashboard">
 
@@ -43,7 +44,7 @@
           <label class="field">
             <span>Senha</span>
             <span class="input-wrap">
-              <span aria-hidden="true">🔒</span>
+              <span class="ico ico-lock" aria-hidden="true"></span>
               <input id="adminSenha" type="password" placeholder="Digite a senha" autocomplete="current-password">
             </span>
           </label>
@@ -70,32 +71,32 @@
       <!-- ESTATÍSTICAS -->
       <section class="admin-stats">
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">👥</span>
+          <span class="admin-stat-ico ico-users" aria-hidden="true"></span>
           <small>Usuários</small>
           <strong id="adminUsuarios">0</strong>
         </article>
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">📈</span>
+          <span class="admin-stat-ico ico-trending" aria-hidden="true"></span>
           <small>Invest. ativos</small>
           <strong id="adminInvestimentos">0</strong>
         </article>
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">💰</span>
+          <span class="admin-stat-ico ico-money" aria-hidden="true"></span>
           <small>Total investido</small>
           <strong id="adminTotalInvestido">R$ 0,00</strong>
         </article>
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">📊</span>
+          <span class="admin-stat-ico ico-chart" aria-hidden="true"></span>
           <small>Rendimentos</small>
           <strong id="adminTotalRendimentos">R$ 0,00</strong>
         </article>
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">💸</span>
+          <span class="admin-stat-ico ico-wallet" aria-hidden="true"></span>
           <small>Saques pagos</small>
           <strong id="adminTotalSaques">R$ 0,00</strong>
         </article>
         <article class="admin-stat">
-          <span class="admin-stat-ico" aria-hidden="true">🏦</span>
+          <span class="admin-stat-ico ico-bank" aria-hidden="true"></span>
           <small>Saldo gateway</small>
           <strong id="adminSaldoGateway">—</strong>
           <button class="mini-btn" style="margin-top:6px" onclick="adminAtualizarSaldoGateway()">Atualizar</button>
@@ -111,7 +112,7 @@
 
         <div class="admin-actions">
           <article class="admin-action">
-            <span class="admin-action-ico green" aria-hidden="true">↻</span>
+            <span class="admin-action-ico green ico-refresh" aria-hidden="true"></span>
             <div>
               <h3>Processar rendimentos</h3>
               <p>Credita 1 diária de cada investimento ativo e devolve o capital ao final do ciclo.</p>
@@ -120,7 +121,7 @@
           </article>
 
           <article class="admin-action">
-            <span class="admin-action-ico red" aria-hidden="true">⛔</span>
+            <span class="admin-action-ico red ico-ban" aria-hidden="true"></span>
             <div>
               <h3>Controle de saques</h3>
               <p>Bloqueie os saques globalmente e defina a mensagem exibida.</p>
@@ -141,7 +142,7 @@
         </div>
 
         <article class="admin-action">
-          <span class="admin-action-ico green" aria-hidden="true">💬</span>
+          <span class="admin-action-ico green ico-message" aria-hidden="true"></span>
           <div style="flex:1 1 100%">
             <h3>Link de convite do grupo</h3>
             <p>Este link aparece no botão verde do canto da tela em todas as páginas.</p>
@@ -172,7 +173,7 @@
           <!-- ROLETA -->
           <article class="admin-code-card">
             <div class="admin-code-head">
-              <span class="admin-code-ico" aria-hidden="true">🎡</span>
+              <span class="admin-code-ico ico-wheel" aria-hidden="true"></span>
               <div>
                 <h3>Códigos da roleta</h3>
                 <p>Libera o giro da roleta para o cliente.</p>
@@ -192,7 +193,7 @@
           <!-- BÔNUS -->
           <article class="admin-code-card">
             <div class="admin-code-head">
-              <span class="admin-code-ico gold" aria-hidden="true">🎁</span>
+              <span class="admin-code-ico gold ico-gift" aria-hidden="true"></span>
               <div>
                 <h3>Códigos de bônus</h3>
                 <p>Cada código tem seu próprio valor e 1 resgate por cliente.</p>
@@ -289,7 +290,7 @@
         <div class="admin-tools-grid">
           <!-- CRIAR -->
           <article class="admin-action">
-            <span class="admin-action-ico green" aria-hidden="true">+</span>
+            <span class="admin-action-ico green ico-plus" aria-hidden="true"></span>
             <div style="flex:1 1 100%">
               <h3>Criar usuário</h3>
               <div class="form-grid">
@@ -305,7 +306,7 @@
 
           <!-- AJUSTAR SALDO -->
           <article class="admin-action">
-            <span class="admin-action-ico gold" aria-hidden="true">💰</span>
+            <span class="admin-action-ico gold ico-money" aria-hidden="true"></span>
             <div style="flex:1 1 100%">
               <h3>Ajustar saldo</h3>
               <div class="form-grid">
@@ -397,7 +398,7 @@
         </div>
 
         <article class="admin-action">
-          <span class="admin-action-ico" aria-hidden="true">🖼️</span>
+          <span class="admin-action-ico ico-image" aria-hidden="true"></span>
           <div style="flex:1 1 100%">
             <h3>Adicionar banner</h3>
             <p>Imagem PNG/JPG/WEBP/GIF até 5 MB. O link é opcional — se preenchido, clicar no banner redireciona.</p>
@@ -442,7 +443,7 @@
         </div>
 
         <article class="admin-action">
-          <span class="admin-action-ico" aria-hidden="true">🔑</span>
+          <span class="admin-action-ico ico-key" aria-hidden="true"></span>
           <div style="flex:1 1 100%">
             <h3>Chaves da gateway</h3>
 
@@ -511,7 +512,7 @@
     aria-label="Entrar no grupo do WhatsApp"
     title="Grupo Taxinexo"
   >
-    <span aria-hidden="true">💬</span> Grupo
+    <span class="ico ico-message" aria-hidden="true"></span> Grupo
   </a>
 
 </body>
