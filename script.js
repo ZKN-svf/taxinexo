@@ -1408,12 +1408,12 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarCodigosRoleta();
   carregarCodigosBonus();
   carregarLinkGrupo();
-  if (location.pathname.includes('admin.html')) {
+  if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
     adminCarregarGateway();
     adminCarregarBanners();
   }
 
-  if (location.pathname.includes('cliente.html')) iniciarDashboard();
+  if (/\/(cliente)(\.html)?\/?$/.test(location.pathname)) iniciarDashboard();
 
   const bonusForm = el('bonusForm');
   if (bonusForm) {
@@ -1453,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  if (location.pathname.includes('admin.html')) {
+  if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
     if (sessionStorage.getItem('admin_taxinexo') === 'sim') carregarAdmin();
   }
 });
