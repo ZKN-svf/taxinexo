@@ -6,6 +6,7 @@
   <title>Taxinexo | Cadastrar-se</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
+  <link rel="stylesheet" href="style-laranja.css">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -25,7 +26,7 @@
         <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita sua senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')"></button></div>
         <label class="input-wrap"><span class="ico ico-star" aria-hidden="true"></span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0;color:var(--muted);"><input type="checkbox" id="termos" required> Li e aceito os <a href="termos.html">termos de uso</a>.</label>
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="register"></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="register" data-theme="light"></div>
         <button class="primary" type="submit">Cadastrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
       <div class="google-area">

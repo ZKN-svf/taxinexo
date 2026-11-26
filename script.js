@@ -364,7 +364,7 @@ async function fazerLogin() {
 
     const resp = await fetch(TAX_API + '/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha_hash: hashSenha(senha), turnstileToken }),
+      body: JSON.stringify({ email, senha_hash: hashSenha(senha), turnstileToken, ref: refIndicacao() }),
     });
     const r = await resp.json().catch(() => ({}));
     if (!resp.ok || !r.ok) return toast(r.message || 'Não foi possível entrar.');

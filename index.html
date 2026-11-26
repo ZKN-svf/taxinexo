@@ -6,6 +6,7 @@
   <title>Taxinexo | Entrar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
+  <link rel="stylesheet" href="style-laranja.css">
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
@@ -18,7 +19,7 @@
       <form id="loginForm" onsubmit="event.preventDefault(); fazerLogin()">
         <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
         <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="current-password" placeholder="Sua senha" aria-label="Sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
-        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="login"></div>
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="login" data-theme="light"></div>
         <button class="primary" type="submit">Entrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
       <div class="google-area">
