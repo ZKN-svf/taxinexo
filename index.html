@@ -6,7 +6,16 @@
   <title>Taxinexo | Entrar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
-  <link rel="stylesheet" href="style-laranja.css">
+  <link rel="stylesheet" href="style-laranja.css" id="themeCss">
+  <link rel="stylesheet" href="tema.css">
+  <script>
+    (function(){try{
+      var t = localStorage.getItem('taxinexo_tema') || 'claro';
+      document.documentElement.dataset.tema = t;
+      if (t === 'escuro') { var l = document.getElementById('themeCss'); if (l) l.disabled = true; }
+    }catch(e){}})();
+  </script>
+  <script src="tema.js" defer></script>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>

@@ -1045,6 +1045,7 @@ async function carregarAdmin() {
     renderAdminUsuarios();
     renderAdminInvestimentos();
     renderAdminSelectUsuarios();
+    adminCarregarAparencia();
 
     if (el('adminUltimaAtualizacao')) {
       el('adminUltimaAtualizacao').textContent = 'Atualizado às ' + new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -1413,6 +1414,82 @@ async function adminTestarGateway() {
     const r = await SigiloPay.consultarSaldo();
     setMensagem('adminGatewayMsg', r.sucesso ? `Gateway OK — saldo ${fmtBRL(r.available)}` : 'Gateway não respondeu.', r.sucesso ? 'success' : 'error');
   } catch (e) { setMensagem('adminGatewayMsg', 'Erro: ' + e.message, 'error'); }
+}
+
+// ------------------------------------------------------------
+// ADMIN — APARÊNCIA (nome da plataforma, cor e tema)
+// ------------------------------------------------------------
+const CORES_PRESET = [
+  { nome: 'Laranja', cor: '#f97316' },
+  { nome: 'Azul', cor: '#2563eb' },
+  { nome: 'Verde', cor: '#16a34a' },
+  { nome: 'Roxo', cor: '#7c3aed' },
+  { nome: 'Rosa', cor: '#db2777' },
+  { nome: 'Vermelho', cor: '#dc2626' },
+  { nome: 'Dourado', cor: '#d97706' },
+  { nome: 'Ciano', cor: '#0891b2' }
+];
+
+function renderCoresPreset() {
+  const box = el('adminCoresPreset');
+  if (!box) return;
+  box.innerHTML = CORES_PRESET.map(c =>
+    `<button type="button" class="cor-swatch" style="background:${c.cor};color:${c.cor}" data-cor="${c.cor}" title="${c.nome}" aria-label="${c.nome}" onclick="adminSelecionarCor('${c.cor}')"></button>`
+  ).join('');
+}
+
+function atualizarPreviewCor(cor) {
+  const c = String(cor || '#f97316');
+  if (el('adminCorCodigo')) el('adminCorCodigo').textContent = c.toUpperCase();
+  const btn = el('adminCorPreviewBtn');
+  if (btn) {
+    btn.style.background = c;
+    btn.style.borderColor = c;
+    btn.style.color = '#fff';
+  }
+  document.querySelectorAll('#adminCoresPreset .cor-swatch').forEach(s => {
+    s.classList.toggle('ativa', String(s.dataset.cor || '').toLowerCase() === c.toLowerCase());
+  });
+}
+
+function adminSelecionarCor(cor) {
+  const campo = el('adminCorPrimaria');
+  if (campo) campo.value = cor;
+  atualizarPreviewCor(cor);
+}
+
+async function adminCarregarAparencia() {
+  renderCoresPreset();
+  let cfg = { nome: 'Taxinexo', cor: '#f97316' };
+  try {
+    if (db) {
+      const s = await db.child('config/marca').once('value');
+      const m = s.val();
+      if (m && typeof m === 'object') {
+        cfg = { nome: String(m.nome || 'Taxinexo'), cor: String(m.cor || '#f97316') };
+      }
+    }
+  } catch (e) { console.warn('[Aparência]', e); }
+  if (el('adminNomePlataforma')) el('adminNomePlataforma').value = cfg.nome;
+  if (el('adminCorPrimaria')) el('adminCorPrimaria').value = cfg.cor;
+  atualizarPreviewCor(cfg.cor);
+  if (window.TaxinexoUI) window.TaxinexoUI.aplicarMarca(cfg);
+}
+
+async function adminSalvarAparencia() {
+  if (!db) return setMensagem('adminAparenciaMsg', 'Firebase não conectado.', 'error');
+  const nome = String(el('adminNomePlataforma')?.value || '').trim().slice(0, 24) || 'Taxinexo';
+  const cor = String(el('adminCorPrimaria')?.value || '#f97316').trim();
+  if (!/^#[0-9a-f]{6}$/i.test(cor)) return setMensagem('adminAparenciaMsg', 'Cor inválida. Use o seletor de cor.', 'error');
+  try {
+    await db.child('config/marca').set({ nome, cor, atualizado_em: new Date().toISOString() });
+    if (window.TaxinexoUI) window.TaxinexoUI.aplicarMarca({ nome, cor });
+    setMensagem('adminAparenciaMsg', 'Aparência salva e aplicada em todo o site.', 'success');
+    toast('Aparência atualizada.');
+    adminCarregarAparencia();
+  } catch (e) {
+    setMensagem('adminAparenciaMsg', 'Erro ao salvar: ' + e.message, 'error');
+  }
 }
 async function processarRendimentos(ev) {
   if (!db) return toast('Firebase não conectado.');

@@ -6,7 +6,16 @@
   <title>Taxinexo | Administração</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
-  <link rel="stylesheet" href="style-laranja.css">
+  <link rel="stylesheet" href="style-laranja.css" id="themeCss">
+  <link rel="stylesheet" href="tema.css">
+  <script>
+    (function(){try{
+      var t = localStorage.getItem('taxinexo_tema') || 'claro';
+      document.documentElement.dataset.tema = t;
+      if (t === 'escuro') { var l = document.getElementById('themeCss'); if (l) l.disabled = true; }
+    }catch(e){}})();
+  </script>
+  <script src="tema.js" defer></script>
 </head>
 <body class="dashboard admin-page">
 
@@ -104,6 +113,9 @@
             </button>
             <button type="button" class="admin-nav-item" data-alvo="sec-codigos">
               <span class="ico ico-gift" aria-hidden="true"></span><span>Códigos</span>
+            </button>
+            <button type="button" class="admin-nav-item" data-alvo="sec-aparencia">
+              <span class="ico ico-star" aria-hidden="true"></span><span>Aparência</span>
             </button>
             <button type="button" class="admin-nav-item" data-alvo="sec-config">
               <span class="ico ico-key" aria-hidden="true"></span><span>Configurações</span>
@@ -516,6 +528,51 @@
             </div>
           </section>
 
+          <!-- APARÊNCIA -->
+          <section class="admin-block" id="sec-aparencia">
+            <div class="admin-block-head">
+              <div>
+                <h2>Aparência</h2>
+                <p>Nome da plataforma, cor principal e tema do site.</p>
+              </div>
+            </div>
+
+            <article class="admin-action">
+              <span class="admin-action-ico gold ico-star" aria-hidden="true"></span>
+              <div class="admin-action-body">
+                <h3>Identidade da plataforma</h3>
+                <p>O nome substitui todas as referências à marca no site. A cor é aplicada em todas as páginas. As imagens existentes não são alteradas — para trocar a logo, substitua os arquivos.</p>
+
+                <div class="aparencia-grid">
+                  <label class="aparencia-field" for="adminNomePlataforma">
+                    <span>Nome da plataforma</span>
+                    <input id="adminNomePlataforma" type="text" maxlength="24" placeholder="Taxinexo" autocomplete="off">
+                  </label>
+                  <div class="aparencia-field">
+                    <span>Cor principal</span>
+                    <div class="cor-swatches" id="adminCoresPreset" role="group" aria-label="Cores prontas"></div>
+                    <div class="aparencia-cor-linha">
+                      <input id="adminCorPrimaria" type="color" value="#f97316" aria-label="Escolher cor principal" oninput="adminSelecionarCor(this.value)">
+                      <code id="adminCorCodigo">#F97316</code>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="aparencia-preview">
+                  <span class="btn small" id="adminCorPreviewBtn">Botão de exemplo</span>
+                  <small>Prévia da cor principal</small>
+                </div>
+
+                <div class="row">
+                  <button class="btn" type="button" onclick="adminSalvarAparencia()">Salvar aparência</button>
+                  <button class="btn secondary" type="button" onclick="adminCarregarAparencia()">Recarregar</button>
+                </div>
+
+                <p class="result" id="adminAparenciaMsg" role="status" aria-live="polite"></p>
+              </div>
+            </article>
+          </section>
+
           <!-- CONFIGURAÇÕES -->
           <section class="admin-block" id="sec-config">
             <div class="admin-block-head">
@@ -623,19 +680,25 @@
     });
 
     // Mantém o item do menu sincronizado com a seção visível
-    if ('IntersectionObserver' in window) {
+    function secaoAtiva() {
       const secoes = [...document.querySelectorAll('.admin-block')];
-      const observador = new IntersectionObserver(entradas => {
-        entradas.forEach(entrada => {
-          if (!entrada.isIntersecting) return;
-          const id = entrada.target.id;
-          document.querySelectorAll('.admin-nav-item').forEach(b => {
-            b.classList.toggle('ativo', b.dataset.alvo === id);
-          });
-        });
-      }, { rootMargin: '-35% 0px -55% 0px', threshold: 0 });
-      secoes.forEach(s => observador.observe(s));
+      if (!secoes.length) return;
+      const y = window.scrollY + 150;
+      let atual = secoes[0].id;
+      for (const s of secoes) if (s.offsetTop <= y) atual = s.id;
+      if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 8) {
+        atual = secoes[secoes.length - 1].id;
+      }
+      document.querySelectorAll('.admin-nav-item').forEach(b => {
+        b.classList.toggle('ativo', b.dataset.alvo === atual);
+      });
     }
+    let quadroAtivo = null;
+    window.addEventListener('scroll', () => {
+      if (quadroAtivo) return;
+      quadroAtivo = requestAnimationFrame(() => { quadroAtivo = null; secaoAtiva(); });
+    }, { passive: true });
+    window.addEventListener('load', secaoAtiva);
   </script>
 
   <!-- Botão flutuante WhatsApp -->

@@ -1,0 +1,107 @@
+/* ============================================================
+   TAXINEXO — TEMA (botão claro/escuro, marca e paleta)
+   Este arquivo fica ativo nos dois temas.
+   ============================================================ */
+
+/* Botão de alternar tema */
+.theme-toggle{
+  width:40px;height:40px;flex:none;padding:0;
+  display:grid;place-items:center;border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--surface);
+  color:var(--text);
+  cursor:pointer;transition:background .18s,border-color .18s,color .18s,transform .18s;
+}
+.theme-toggle:hover{border-color:var(--cyan);color:var(--cyan);transform:translateY(-1px)}
+.theme-toggle .ico{width:18px;height:18px;font-size:18px}
+html[data-tema="escuro"] .theme-toggle{
+  background:rgba(15,30,58,.85);
+  border-color:rgba(125,180,255,.24);
+  color:#dbe8fb;
+}
+html[data-tema="escuro"] .theme-toggle:hover{border-color:var(--cyan);color:var(--cyan)}
+.theme-toggle-float{
+  position:fixed;right:16px;bottom:18px;top:auto;z-index:90;
+  width:44px;height:44px;border-radius:14px;
+  box-shadow:0 14px 34px -18px rgba(0,0,0,.55);
+}
+@media(max-width:700px){
+  .theme-toggle-float{width:46px;height:46px;right:14px;bottom:16px}
+  .theme-toggle{width:36px;height:36px;border-radius:10px}
+  .theme-toggle .ico{width:16px;height:16px}
+  .topbar .account{gap:8px}
+}
+@media(max-width:560px){
+  .admin-page .account-meta,.admin-page .account .avatar{display:none}
+}
+
+/* Marca personalizada (nome da plataforma) */
+.brand-name{display:none}
+.auth-brand-name{display:none}
+.auth-brand-sub{display:none}
+html[data-marca="custom"] .topbar>a img{display:none}
+html[data-marca="custom"] .topbar>a{
+  display:flex;align-items:center;min-width:0;text-decoration:none;
+}
+html[data-marca="custom"] .brand-name{
+  display:block;
+  font-family:var(--display);font-weight:800;
+  font-size:clamp(16px,2.3vw,21px);line-height:1.05;
+  letter-spacing:-.02em;text-transform:uppercase;
+  color:var(--cyan);overflow-wrap:anywhere;
+}
+html[data-marca="custom"] .auth-brand{
+  display:grid;place-items:center;min-height:150px;
+}
+html[data-marca="custom"] .auth-brand img{display:none}
+html[data-marca="custom"] .auth-brand .auth-brand-name{
+  display:block;text-align:center;padding:30px 18px;
+  font-family:var(--display);font-weight:800;
+  font-size:clamp(24px,5vw,34px);line-height:1.1;
+  letter-spacing:.02em;text-transform:uppercase;
+  color:var(--cyan);text-shadow:none;overflow-wrap:anywhere;
+}
+html[data-marca="custom"] .auth-brand .auth-brand-sub{
+  display:block;margin-top:8px;font-family:var(--font);
+  font-size:9px;font-weight:800;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--muted);
+}
+html[data-marca="custom"] .plan-car{display:none}
+
+/* Paleta de cores no admin */
+.aparencia-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));
+  gap:14px;align-items:end;
+}
+.aparencia-field>span{
+  display:block;margin-bottom:7px;font-size:9px;font-weight:800;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+}
+.aparencia-field input[type="text"]{
+  width:100%;padding:11px 13px;border-radius:11px;
+  border:1px solid var(--line);background:var(--surface);color:var(--text);
+  font:inherit;font-size:13px;outline:0;
+}
+.aparencia-field input[type="text"]:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(249,115,22,.1)}
+.cor-swatches{display:flex;gap:8px;flex-wrap:wrap;margin:2px 0 10px}
+.cor-swatch{
+  width:32px;height:32px;padding:0;border-radius:10px;cursor:pointer;
+  border:2px solid transparent;box-shadow:inset 0 1px 0 rgba(255,255,255,.4);
+  transition:transform .15s,border-color .15s;
+}
+.cor-swatch:hover{transform:translateY(-2px)}
+.cor-swatch.ativa{border-color:var(--text);box-shadow:0 0 0 2px var(--surface),0 0 0 4px currentColor}
+.aparencia-cor-linha{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.aparencia-cor-linha input[type="color"]{
+  width:54px;height:40px;padding:0;border:1px solid var(--line);
+  border-radius:10px;background:var(--surface);cursor:pointer;
+}
+.aparencia-cor-linha code{
+  font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;color:var(--muted);
+}
+.aparencia-preview{
+  margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;
+  background:var(--surface);display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.aparencia-preview .btn{pointer-events:none}
+.aparencia-preview small{color:var(--muted);font-size:10px}
