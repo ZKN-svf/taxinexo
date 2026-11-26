@@ -268,6 +268,13 @@ html[data-tema="escuro"] .auth-split .auth-brand-mini{
 .dash-shell .quick-actions button,.dash-shell .quick-actions a{transition:transform .22s,box-shadow .22s,border-color .22s}
 .dash-shell .quick-actions button:hover,.dash-shell .quick-actions a:hover{transform:translateY(-4px)}
 .dash-shell .section-heading h2{letter-spacing:-.02em}
+.invite-niveis{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.invite-niveis span{
+  display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:999px;
+  font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--accent-dark);
+  background:rgba(var(--accent-rgb),.08);border:1px solid rgba(var(--accent-rgb),.22);
+}
+.invite-niveis b{font-family:var(--display);color:var(--accent);font-size:9px}
 
 /* brilho nos botões principais */
 .primary,.btn,.goal-btn,.invite-copy{position:relative;overflow:hidden}

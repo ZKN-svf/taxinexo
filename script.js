@@ -342,7 +342,7 @@ async function fazerCadastro() {
 
     salvarUsuarioLocal(usuario);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
-    toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nGanhe ${fmtBRL(CONFIG.bonusIndicacao)} por amigo que ativar um plano pago!`);
+    toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nComissões em 5 níveis: 10%, 5%, 3%, 2% e 1% por amigo que ativar um plano pago!`);
     location.href = 'cliente.html';
   } catch (e) {
     console.error(e);
