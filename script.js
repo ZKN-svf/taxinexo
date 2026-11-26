@@ -275,20 +275,39 @@ const TAX_API = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/api';
 
 // Preserva o código de indicação de QUALQUER página (ex.: alguém abre
 // cliente.html?ref=CODIGO e é redirecionado para login/cadastro).
-(function capturarRef() {
-  try {
-    const ref = new URLSearchParams(location.search).get('ref');
-    if (ref && /^[A-Za-z0-9_-]{3,24}$/.test(ref)) {
-      sessionStorage.setItem('taxinexo_ref', ref.trim().toUpperCase());
-    }
-  } catch (_) {}
-})();
+const REF_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 dias
+function guardarRefIndicacao(ref) {
+  const cod = String(ref || '').trim().toUpperCase();
+  if (!/^[A-Za-z0-9_-]{3,24}$/.test(cod)) return;
+  try { sessionStorage.setItem('taxinexo_ref', cod); } catch (_) {}
+  try { localStorage.setItem('taxinexo_ref', JSON.stringify({ cod, em: Date.now() })); } catch (_) {}
+}
 function refIndicacao() {
   try {
     const daUrl = new URLSearchParams(location.search).get('ref');
-    return String(daUrl || sessionStorage.getItem('taxinexo_ref') || '').trim().toUpperCase();
+    if (daUrl) return String(daUrl).trim().toUpperCase();
+
+    const daSessao = sessionStorage.getItem('taxinexo_ref');
+    if (daSessao) return String(daSessao).trim().toUpperCase();
+
+    const bruto = localStorage.getItem('taxinexo_ref');
+    if (!bruto) return '';
+    let item;
+    try { item = JSON.parse(bruto); } catch (_) { item = { cod: bruto, em: Date.now() }; }
+    if (item && item.cod && (!item.em || Date.now() - Number(item.em) < REF_TTL_MS)) {
+      return String(item.cod).trim().toUpperCase();
+    }
+    try { localStorage.removeItem('taxinexo_ref'); } catch (_) {}
+    return '';
   } catch (_) { return ''; }
 }
+function limparRefIndicacao() {
+  try { sessionStorage.removeItem('taxinexo_ref'); } catch (_) {}
+  try { localStorage.removeItem('taxinexo_ref'); } catch (_) {}
+}
+(function capturarRef() {
+  try { guardarRefIndicacao(new URLSearchParams(location.search).get('ref')); } catch (_) {}
+})();
 
 async function fazerCadastro() {
   const btn = document.querySelector('#cadastroForm button[type="submit"]');
@@ -342,6 +361,7 @@ async function fazerCadastro() {
 
     salvarUsuarioLocal(usuario);
     localStorage.setItem('token_taxinexo', 'token_' + Date.now());
+    limparRefIndicacao();
     toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nComissões em 5 níveis: 10%, 5%, 3%, 2% e 1% por amigo que ativar um plano pago!`);
     location.href = 'cliente.html';
   } catch (e) {
@@ -393,6 +413,7 @@ async function entrarComGoogle(response) {
     if (!resp.ok || !r.ok) return toast(r.message || 'Erro no login com Google.');
     salvarUsuarioLocal(r.user);
     localStorage.setItem('token_taxinexo', 'google_' + Date.now());
+    limparRefIndicacao();
     toast('Bem-vindo!');
     setTimeout(() => { location.href = 'cliente.html'; }, 600);
   } catch (e) {
@@ -430,10 +451,11 @@ async function iniciarDashboard() {
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
 
   carregarPlanos();
-  await carregarInvestimentos();
   atualizarTimers();
-  await carregarExtrato();
-  await carregarEquipe();
+  // Carrega a equipe em paralelo para o resumo de indicados aparecer rápido.
+  const equipeCarregando = carregarEquipe();
+  await Promise.all([carregarInvestimentos(), carregarExtrato(), equipeCarregando]);
+  iniciarAtualizacaoEquipe();
 }
 
 // ------------------------------------------------------------
@@ -441,6 +463,38 @@ async function iniciarDashboard() {
 // ------------------------------------------------------------
 function escTexto(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+// Resumo curto dos indicados dentro do card "Indique e ganhe".
+// Mostra TODOS os cadastros (inclusive sem plano pago); o selo PAGO é
+// exclusivo de quem já ativou plano pago.
+function renderizarResumoIndicados(indicados) {
+  const lista = el('inviteTeamList');
+  const contador = el('inviteTeamCount');
+  if (contador) {
+    contador.textContent = indicados.length === 1
+      ? '1 cadastrado'
+      : indicados.length + ' cadastrados';
+  }
+  if (!lista) return;
+  if (!indicados.length) {
+    lista.innerHTML = '<p class="invite-team-empty">Nenhum cadastro ainda. Compartilhe seu link para começar.</p>';
+    return;
+  }
+  const visiveis = indicados.slice(0, 3);
+  lista.innerHTML = visiveis.map(ind => {
+    const inicial = String(ind.nome || '?').trim()[0]?.toUpperCase() || '?';
+    const pago = ind.status === 'convertido' || ind.investiu;
+    const email = String(ind.email || '');
+    const emailCurto = email.length > 24 ? email.slice(0, 22) + '…' : email;
+    return `<div class="invite-mini">
+      <div class="invite-mini-avatar">${escTexto(inicial)}</div>
+      <div class="invite-mini-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}</small></div>
+      <span class="invite-mini-status ${pago ? 'pago' : 'pendente'}">${pago ? 'PAGO' : 'PENDENTE'}</span>
+    </div>`;
+  }).join('') + (indicados.length > visiveis.length
+    ? `<span class="invite-mini-mais">+${indicados.length - visiveis.length} outro(s) cadastro(s)</span>`
+    : '');
 }
 
 const METAS_EQUIPE = [
@@ -464,8 +518,9 @@ async function carregarEquipe() {
   if (!u || !db) return;
   const lista = el('listaIndicados');
   try {
-    // Backend é a fonte da verdade para status de indicação
-    const resposta = await (await fetch(TAX_API + '/indicados?uid=' + encodeURIComponent(u.id))).json().catch(() => ({}));
+    // Backend é a fonte da verdade para status de indicação.
+    // no-store evita exibir uma lista antiga em cache depois de um novo cadastro.
+    const resposta = await (await fetch(TAX_API + '/indicados?uid=' + encodeURIComponent(u.id), { cache: 'no-store' })).json().catch(() => ({}));
     let indicados = resposta.ok && Array.isArray(resposta.indicados) ? resposta.indicados.slice() : [];
     const vistos = new Set(indicados.map(x => x.id));
 
@@ -473,10 +528,13 @@ async function carregarEquipe() {
     // Status "convertido" só é gravado no servidor quando há plano PAGO ativado.
     indicados.sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
 
-    // Metas contam APENAS indicados convertidos (plano pago), nunca cadastros.
-    const convertidos = indicados.filter(ind => ind.status === 'convertido');
+    // Cadastrados = todos os que entraram pelo link.
+    // Pagos = apenas os convertidos (plano pago). Só esses contam nas metas.
+    const convertidos = indicados.filter(ind => ind.status === 'convertido' || ind.investiu);
 
+    if (el('totalCadastrados')) el('totalCadastrados').textContent = String(indicados.length);
     if (el('totalIndicados')) el('totalIndicados').textContent = String(convertidos.length);
+    renderizarResumoIndicados(indicados);
 
     if (lista) {
       if (!indicados.length) {
@@ -487,10 +545,11 @@ async function carregarEquipe() {
           const data = ind.criado_em ? new Date(ind.criado_em).toLocaleDateString('pt-BR') : '';
           const email = String(ind.email || '');
           const emailCurto = email.length > 26 ? email.slice(0, 24) + '…' : email;
+          const pago = ind.status === 'convertido' || ind.investiu;
           return `<div class="team-item">
             <div class="team-avatar">${escTexto(inicial)}</div>
             <div class="team-info"><strong>${escTexto(ind.nome || 'Indicado')}</strong><small>${escTexto(emailCurto)}${data ? '<span class="dot" aria-hidden="true"></span>' + data : ''}</small></div>
-            <span class="team-status ${ind.status === 'convertido' || ind.investiu ? 'investiu' : 'pendente'}">${ind.status === 'convertido' || ind.investiu ? 'CONVERTIDO' : 'PENDENTE'}</span>
+            <span class="team-status ${pago ? 'investiu' : 'pendente'}">${pago ? 'PAGO' : 'PENDENTE'}</span>
           </div>`;
         }).join('');
       }
@@ -521,6 +580,23 @@ async function carregarEquipe() {
     if (lista) lista.innerHTML = `<p class="empty-state">Não foi possível carregar sua equipe.</p>`;
   }
 }
+
+// Atualiza a equipe periodicamente e ao voltar para a aba, para que um
+// cadastro novo (inclusive via Google) apareça sem precisar recarregar a página.
+let _equipeTimer = null;
+function iniciarAtualizacaoEquipe() {
+  if (_equipeTimer) return;
+  _equipeTimer = setInterval(() => {
+    if (document.visibilityState === 'visible' && usuarioLocal() && el('listaIndicados')) {
+      carregarEquipe();
+    }
+  }, 45000);
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && usuarioLocal() && el('listaIndicados')) {
+    carregarEquipe();
+  }
+});
 
 async function resgatarMeta(qtd, premio) {
   const u = usuarioLocal();

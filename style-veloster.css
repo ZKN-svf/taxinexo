@@ -272,6 +272,83 @@ html[data-tema="escuro"] .auth-split .auth-brand-mini img{
 }
 .invite-niveis b{font-family:var(--display);color:var(--accent);font-size:9px}
 
+/* lista compacta de indicados dentro do card de indicação */
+.invite-team{
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--line);
+}
+.invite-team-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;
+}
+.invite-team-head span{
+  font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+}
+.invite-team-head strong{font-size:10px;font-weight:800;color:var(--accent-dark)}
+.invite-team-list{display:grid;gap:6px}
+.invite-team-empty{
+  margin:0;padding:9px 11px;border:1px dashed var(--line);border-radius:10px;
+  font-size:10.5px;line-height:1.5;color:var(--muted);
+}
+.invite-mini{
+  display:flex;align-items:center;gap:8px;padding:7px 9px;border-radius:10px;
+  border:1px solid var(--line);background:rgba(var(--accent-rgb),.035);
+}
+.invite-mini-avatar{
+  width:24px;height:24px;flex:none;display:grid;place-items:center;border-radius:50%;
+  background:var(--grad);color:#fff;font-family:var(--display);font-size:9px;font-weight:800;
+}
+.invite-mini-info{flex:1;min-width:0}
+.invite-mini-info strong{
+  display:block;font-size:10.5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.invite-mini-info small{
+  display:block;font-size:8.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.invite-mini-status{
+  flex:none;padding:3px 7px;border-radius:999px;font-size:7.5px;font-weight:800;
+  letter-spacing:.05em;text-transform:uppercase;border:1px solid transparent;
+}
+.invite-mini-status.pendente{color:var(--accent-dark);background:rgba(var(--accent-rgb),.09);border-color:rgba(var(--accent-rgb),.28)}
+.invite-mini-status.pago{color:#15803d;background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.3)}
+html[data-tema="escuro"] .invite-mini-status.pago{color:#4dffc3;background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3)}
+html[data-tema="escuro"] .invite-mini-status.pendente{color:#ffd27a;background:rgba(246,198,103,.13);border-color:rgba(246,198,103,.32)}
+html[data-tema="escuro"] .invite-team-head strong,
+html[data-tema="escuro"] .invite-team-link{color:#ffd27a}
+.invite-mini-mais{
+  padding:5px 9px;font-size:9px;font-weight:700;color:var(--muted);
+}
+.invite-team-note{
+  margin:8px 0 0;font-size:9.5px;line-height:1.5;color:var(--muted);
+}
+.invite-team-link{
+  display:inline-flex;align-items:center;gap:5px;margin-top:9px;padding:0;
+  border:0;background:none;color:var(--accent-dark);font-size:10px;font-weight:800;cursor:pointer;
+}
+.invite-team-link:hover{color:var(--accent-darker)}
+.invite-team-link .ico{width:13px;height:13px}
+
+/* contadores da equipe: cadastrados x pagos */
+.team-total{flex-wrap:wrap}
+.team-total>div:nth-child(2).team-counters{display:flex;flex-direction:row;align-items:stretch;gap:clamp(18px,4vw,38px);flex-wrap:wrap}
+.team-counter{display:flex;flex-direction:column;min-width:78px}
+.team-counter span{font-size:10px;letter-spacing:.15em;color:var(--muted);font-weight:800;text-transform:uppercase}
+.team-counter strong{font-family:var(--display);font-size:40px;line-height:1.05;color:var(--text);text-shadow:none}
+.team-counter.pago strong{color:var(--accent)}
+.team-counter.pago span{color:var(--accent-dark)}
+.team-total-obs{max-width:290px}
+.team-total-obs strong{
+  display:inline;font-family:inherit;font-size:inherit;line-height:inherit;
+  font-weight:800;color:var(--accent-dark);text-shadow:none;
+}
+html[data-tema="escuro"] .team-counter strong{color:#fff;text-shadow:0 0 24px rgba(34,211,238,.35)}
+html[data-tema="escuro"] .team-counter.pago strong{color:var(--accent);text-shadow:0 0 24px rgba(var(--accent-rgb),.35)}
+html[data-tema="escuro"] .team-total-obs strong{color:#ffd27a}
+@media(max-width:700px){
+  .team-counters{gap:18px}
+  .team-counter{min-width:64px}
+  .team-counter strong{font-size:32px}
+  .team-total-obs{display:block;max-width:none;text-align:left;margin-left:0}
+}
+
 /* brilho nos botões principais */
 .primary,.btn,.goal-btn,.invite-copy{position:relative;overflow:hidden}
 .primary::after,.btn::after,.goal-btn::after,.invite-copy::after{

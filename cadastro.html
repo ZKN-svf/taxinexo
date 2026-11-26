@@ -90,6 +90,12 @@
     // Preenche automaticamente o código de quem compartilhou o link (?ref=CODIGO)
     (function () {
       var ref = new URLSearchParams(location.search).get('ref') || sessionStorage.getItem('taxinexo_ref');
+      if (!ref) {
+        try {
+          var salvo = JSON.parse(localStorage.getItem('taxinexo_ref') || 'null');
+          ref = salvo && salvo.cod ? salvo.cod : '';
+        } catch (_) {}
+      }
       if (ref) {
         var campo = document.getElementById('indicacao');
         if (campo) {

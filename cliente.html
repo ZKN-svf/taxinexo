@@ -125,6 +125,18 @@
             <button class="invite-copy" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar link</button>
           </div>
           <div class="invite-code">Código: <strong id="codigoIndicacao">----</strong></div>
+
+          <div class="invite-team" id="inviteTeam">
+            <div class="invite-team-head">
+              <span>Seus indicados</span>
+              <strong id="inviteTeamCount">0 cadastrados</strong>
+            </div>
+            <div class="invite-team-list" id="inviteTeamList">
+              <p class="invite-team-empty">Nenhum cadastro ainda. Compartilhe seu link para começar.</p>
+            </div>
+            <p class="invite-team-note">O cadastro aparece aqui na hora. A comissão só é liberada quando o indicado ativa um plano pago.</p>
+            <button class="invite-team-link" type="button" onclick="alternarAba('equipe')">Ver equipe completa <span class="ico ico-arrow" aria-hidden="true"></span></button>
+          </div>
         </section>
 
         <section class="rewards-grid" id="recompensas" aria-label="Bônus e sorte">
@@ -174,8 +186,11 @@
           <div class="section-heading"><h2>Equipe</h2><span>Seu time de indicados</span></div>
           <div class="team-total">
             <div class="team-total-ico ico-users" aria-hidden="true"></div>
-            <div><span>TOTAL INDICADOS</span><strong id="totalIndicados">0</strong></div>
-            <div class="team-total-obs">Pessoas que se cadastraram pelo seu link e ativaram plano PAGO</div>
+            <div class="team-counters">
+              <div class="team-counter"><span>CADASTRADOS</span><strong id="totalCadastrados">0</strong></div>
+              <div class="team-counter pago"><span>PAGOS</span><strong id="totalIndicados">0</strong></div>
+            </div>
+            <div class="team-total-obs">Todos os cadastros aparecem na lista. Só quem ativou <strong>plano pago</strong> conta para metas e comissões.</div>
           </div>
           <div class="team-list" id="listaIndicados"><p class="empty-state">Carregando...</p></div>
         </section>
@@ -301,6 +316,7 @@
     function irSecao(id) {
       const equipe = document.getElementById('abaEquipe');
       if (equipe && !equipe.classList.contains('hidden')) alternarAba('inicio');
+      if (id === 'indicacaoBox' && typeof carregarEquipe === 'function') carregarEquipe();
       setTimeout(() => {
         const alvo = document.getElementById(id);
         if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
