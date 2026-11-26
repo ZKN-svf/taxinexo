@@ -320,7 +320,6 @@
     b.type = 'button';
     b.className = 'theme-toggle';
     b.innerHTML = '<span class="ico ico-moon" aria-hidden="true"></span>';
-    b.addEventListener('click', alternarTema);
     return b;
   }
   function montarBotoes() {
@@ -332,6 +331,13 @@
       b.classList.add('theme-toggle-float');
       document.body.appendChild(b);
     }
+    // Liga qualquer botão de tema presente no HTML ou criado agora,
+    // sem duplicar o evento em cliques repetidos.
+    document.querySelectorAll('.theme-toggle').forEach(function (btn) {
+      if (btn.dataset.temaLigado === '1') return;
+      btn.dataset.temaLigado = '1';
+      btn.addEventListener('click', alternarTema);
+    });
     atualizarBotoesTema();
   }
 

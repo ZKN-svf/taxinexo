@@ -195,8 +195,15 @@ html[data-tema="escuro"] .auth-split .auth-brand-mini img{
   color:var(--muted);font-family:var(--font);font-size:12px;font-weight:700;
   text-align:left;cursor:pointer;transition:background .18s,color .18s,transform .18s;
 }
-.dash-nav button .ico{width:17px;height:17px;color:inherit}
-.dash-nav button:hover{background:rgba(var(--accent-rgb),.08);color:var(--accent);transform:translateX(2px)}
+.dash-nav button .ico,.dash-nav a.dash-link .ico{width:17px;height:17px;color:inherit}
+.dash-nav button:hover,.dash-nav a.dash-link:hover{background:rgba(var(--accent-rgb),.08);color:var(--accent);transform:translateX(2px)}
+.dash-nav a.dash-link{
+  display:grid;grid-template-columns:20px minmax(0,1fr);align-items:center;gap:10px;
+  width:100%;padding:11px 12px;border-radius:11px;background:transparent;
+  color:var(--muted);font-family:var(--font);font-size:12px;font-weight:700;
+  text-align:left;text-decoration:none;cursor:pointer;
+  transition:background .18s,color .18s,transform .18s;
+}
 .dash-nav .dash-tab{
   flex:none;width:100%;padding:11px 12px;text-transform:none;letter-spacing:0;
   font-size:12px;font-weight:700;background:transparent;color:var(--muted);
@@ -387,11 +394,11 @@ html[data-tema="escuro"] .team-total-obs strong{color:#ffd27a}
     scrollbar-width:none;-ms-overflow-style:none;
   }
   .dash-nav::-webkit-scrollbar{display:none}
-  .dash-nav button,.dash-nav .dash-tab{
+  .dash-nav button,.dash-nav .dash-tab,.dash-nav a.dash-link{
     flex:0 0 auto;width:auto;white-space:nowrap;padding:9px 12px;
     grid-template-columns:auto auto;gap:7px;font-size:11px;
   }
-  .dash-nav button:hover,.dash-nav .dash-tab:hover{transform:none}
+  .dash-nav button:hover,.dash-nav .dash-tab:hover,.dash-nav a.dash-link:hover{transform:none}
   .dash-nav-sep{display:none}
   .dash-side-card{display:none}
   #abaInicio,#abaEquipe{gap:16px}
