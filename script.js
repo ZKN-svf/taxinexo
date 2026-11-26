@@ -43,27 +43,27 @@ async function carregarConfigAdmin() {
 const CONFIG = {
   depositoMinimo: 20,
   depositoMaximo: 500,
-  saqueMinimo: 20,
+  saqueMinimo: 6,
   saquesPorDia: 2,
   taxaSaquePorcento: 10,
-  horarioSaqueInicio: 11,
-  horarioSaqueFim: 18,
+  horarioSaqueInicio: 0,
+  horarioSaqueFim: 24,
   bonusIndicacao: 2.00,
   codigo_roleta: 'ROLETA',
   codigo_bonus: 'TAXINEXO',
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo (diaria x ciclo = retorno)
+// Planos do Taxinexo: 20 dias, rendimento de 3,5% ao dia + capital no fim.
 const planos = [
-  { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 2, ciclo: 5, retorno: 10 },
-  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 3, ciclo: 10, retorno: 30 },
-  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 5, ciclo: 10, retorno: 50 },
-  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 10, ciclo: 10, retorno: 100 },
-  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 20, ciclo: 10, retorno: 200 },
-  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 100, ciclo: 10, retorno: 1000 },
-  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 140, ciclo: 10, retorno: 1400 },
-  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 200, ciclo: 10, retorno: 2000 }
+  { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10 },
+  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 0.53, ciclo: 20, retorno: 25.60 },
+  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 0.88, ciclo: 20, retorno: 42.60 },
+  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 1.75, ciclo: 20, retorno: 85 },
+  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 3.50, ciclo: 20, retorno: 170 },
+  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 17.50, ciclo: 20, retorno: 850 },
+  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 24.50, ciclo: 20, retorno: 1190 },
+  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 35.00, ciclo: 20, retorno: 1700 }
 ];
 
 // ------------------------------------------------------------
