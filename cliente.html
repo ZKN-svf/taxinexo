@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taxinexo | Painel</title>
+  <title>Veloster Capital | Painel</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
   <link rel="stylesheet" href="style-laranja.css" id="themeCss">
   <link rel="stylesheet" href="tema.css">
+  <link rel="stylesheet" href="style-veloster.css">
   <script>
     (function(){try{
       var t = localStorage.getItem('taxinexo_tema') || 'claro';
@@ -17,119 +18,153 @@
   </script>
   <script src="tema.js" defer></script>
 </head>
-<body class="dashboard">
+<body class="dashboard dash-page">
   <header class="topbar">
-    <a href="cliente.html"><img src="brand-transparent.png" alt="Taxinexo Investimento"></a>
+    <a href="cliente.html"><img src="brand-transparent.png" alt="Veloster Capital"></a>
     <div class="account">
       <span class="user-icon" aria-hidden="true"></span>
-      <p>Olá, <strong id="nomeUsuario">Usuário</strong><small id="userEmail">Cliente Taxinexo</small></p>
+      <p>Olá, <strong id="nomeUsuario">Usuário</strong><small id="userEmail">Cliente Veloster Capital</small></p>
       <button class="sair-btn" onclick="sair()" title="Sair">Sair</button>
     </div>
   </header>
 
-  <div class="dashboard-layout">
-    <main class="dashboard-main">
-      <nav class="dash-tabs" aria-label="Seções do painel">
-        <button class="dash-tab ativa" data-aba="inicio" onclick="alternarAba('inicio')">Visão geral</button>
-        <button class="dash-tab" data-aba="equipe" onclick="alternarAba('equipe')">Equipe</button>
+  <div class="dashboard-layout dash-shell">
+
+    <aside class="dash-side" aria-label="Menu do painel">
+      <nav class="dash-nav">
+        <button class="dash-tab ativa" data-aba="inicio" onclick="alternarAba('inicio')">
+          <span class="ico ico-chart" aria-hidden="true"></span><span>Visão geral</span>
+        </button>
+        <button class="dash-link" data-sec="planos" onclick="irSecao('planos')">
+          <span class="ico ico-trending" aria-hidden="true"></span><span>Planos</span>
+        </button>
+        <button class="dash-link" data-sec="investimentosBox" onclick="irSecao('investimentosBox')">
+          <span class="ico ico-bank" aria-hidden="true"></span><span>Investimentos</span>
+        </button>
+        <button class="dash-link" data-sec="indicacaoBox" onclick="irSecao('indicacaoBox')">
+          <span class="ico ico-users" aria-hidden="true"></span><span>Indique e ganhe</span>
+        </button>
+        <div class="dash-nav-sep" aria-hidden="true"></div>
+        <button class="dash-link" data-sec="bonus" onclick="irSecao('bonus')">
+          <span class="ico ico-gift" aria-hidden="true"></span><span>Bônus</span>
+        </button>
+        <button class="dash-link" data-sec="roleta" onclick="irSecao('roleta')">
+          <span class="ico ico-wheel" aria-hidden="true"></span><span>Roleta</span>
+        </button>
+        <button class="dash-tab" data-aba="equipe" onclick="alternarAba('equipe')">
+          <span class="ico ico-users" aria-hidden="true"></span><span>Equipe</span>
+        </button>
+        <button onclick="mostrarExtrato()">
+          <span class="ico ico-list" aria-hidden="true"></span><span>Extrato</span>
+        </button>
       </nav>
 
-      <div id="abaInicio">
-      <div id="taxCarousel" class="tax-carousel hidden" aria-label="Destaques"></div>
-
-      <section class="balance panel">
-        <div class="balance-main">
-          <div><p>Saldo Disponível</p><h1>R$ <span id="saldo">0,00</span></h1></div>
-          <div class="saldo-indicacao"><p>Saldo de indicação</p><strong id="saldoIndicacao">R$ 0,00</strong></div>
-        </div>
-        <div class="balance-details">
-          <div>Total Investido<strong id="totalInvestido">R$ 0,00</strong></div>
-          <div>Rendimentos<strong id="totalRendimentos">R$ 0,00</strong></div>
-          <div>Total Geral<strong id="totalGeral">R$ 0,00</strong></div>
-        </div>
-      </section>
-
-      <div class="quick-actions">
-        <button onclick="mostrarDeposito()"><span class="qa-ico"><span class="ico ico-download" aria-hidden="true"></span></span><em>Depositar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
-        <button onclick="mostrarSaque()"><span class="qa-ico"><span class="ico ico-upload" aria-hidden="true"></span></span><em>Sacar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
-        <a href="#planos"><span class="qa-ico"><span class="ico ico-trending" aria-hidden="true"></span></span><em>Meus Planos</em><b class="ico ico-chev" aria-hidden="true"></b></a>
-        <button onclick="mostrarExtrato()"><span class="qa-ico"><span class="ico ico-list" aria-hidden="true"></span></span><em>Extrato</em><b class="ico ico-chev" aria-hidden="true"></b></button>
+      <div class="dash-side-card">
+        <span class="dash-side-label">Atendimento</span>
+        <strong>Precisa de ajuda?</strong>
+        <p>Fale com o time no grupo oficial e tire suas dúvidas.</p>
+        <button class="btn small secondary block" type="button" onclick="window.open((document.getElementById('linkGrupo')||{}).href || 'https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2','_blank')">Abrir grupo</button>
       </div>
+    </aside>
 
-      <section class="invite-box" id="indicacaoBox">
-        <div class="invite-top">
-          <div class="invite-ico ico-star" aria-hidden="true"></div>
-          <div class="invite-txt">
-            <h2>Indique e ganhe</h2>
-            <p>Ganhe <strong>R$ 2,00</strong> por amigo que se cadastrar pelo seu link e ativar um plano pago.</p>
+    <main class="dashboard-main">
+      <div id="abaInicio">
+        <div id="taxCarousel" class="tax-carousel hidden" aria-label="Destaques"></div>
+
+        <section class="balance panel">
+          <div class="balance-main">
+            <div><p>Saldo Disponível</p><h1>R$ <span id="saldo">0,00</span></h1></div>
+            <div class="saldo-indicacao"><p>Saldo de indicação</p><strong id="saldoIndicacao">R$ 0,00</strong></div>
           </div>
-          <span class="invite-badge">R$ 2,00</span>
-        </div>
-        <div class="invite-bottom">
-          <div class="invite-field">
-            <span>Seu link de indicação</span>
-            <input id="linkIndicacao" readonly aria-label="Seu link de indicação" onclick="this.select();">
+          <div class="balance-details">
+            <div>Total Investido<strong id="totalInvestido">R$ 0,00</strong></div>
+            <div>Rendimentos<strong id="totalRendimentos">R$ 0,00</strong></div>
+            <div>Total Geral<strong id="totalGeral">R$ 0,00</strong></div>
           </div>
-          <button class="invite-copy" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar link</button>
+        </section>
+
+        <div class="quick-actions">
+          <button onclick="mostrarDeposito()"><span class="qa-ico"><span class="ico ico-download" aria-hidden="true"></span></span><em>Depositar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
+          <button onclick="mostrarSaque()"><span class="qa-ico"><span class="ico ico-upload" aria-hidden="true"></span></span><em>Sacar</em><b class="ico ico-chev" aria-hidden="true"></b></button>
+          <a href="#planos"><span class="qa-ico"><span class="ico ico-trending" aria-hidden="true"></span></span><em>Meus Planos</em><b class="ico ico-chev" aria-hidden="true"></b></a>
+          <button onclick="mostrarExtrato()"><span class="qa-ico"><span class="ico ico-list" aria-hidden="true"></span></span><em>Extrato</em><b class="ico ico-chev" aria-hidden="true"></b></button>
         </div>
-        <div class="invite-code">Código: <strong id="codigoIndicacao">----</strong></div>
-      </section>
 
-      <section class="panel" id="investimentosBox">
-        <div class="section-heading"><h2>Meus investimentos</h2><span>Acompanhe suas diárias</span></div>
-        <div class="invest-list" id="investimentosBody"><p class="empty-state">Carregando...</p></div>
-      </section>
+        <!-- PLANOS (antes dos investimentos) -->
+        <section class="panel plans-section" id="planos">
+          <div class="section-heading"><h2>Escolha um Plano</h2><span class="section-badge">20 dias</span></div>
+          <div class="planos-grid" id="listaPlanos"></div>
+        </section>
 
-      <section class="rewards-grid" aria-label="Bônus e sorte">
-        <article class="panel reward-card" id="bonus">
-          <span class="reward-tag">BÔNUS TAXINEXO</span>
-          <h2>Resgatar bônus</h2>
-          <p>Digite seu código para descobrir seu bônus.</p>
-          <form id="bonusForm">
-            <label for="bonusCode">Código do bônus</label>
-            <div class="input-wrap"><input id="bonusCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="bonusHint bonusResult"></div>
-            <p class="reward-hint" id="bonusHint">Digite o código promocional e receba o valor direto no saldo. Cada código pode ser usado uma vez.</p>
-            <button class="primary" type="submit">Resgatar bônus</button>
-          </form>
-          <p class="reward-result" id="bonusResult" role="status" aria-live="polite"></p>
-        </article>
+        <section class="panel" id="investimentosBox">
+          <div class="section-heading"><h2>Meus investimentos</h2><span>Acompanhe suas diárias</span></div>
+          <div class="invest-list" id="investimentosBody"><p class="empty-state">Carregando...</p></div>
+        </section>
 
-        <article class="panel reward-card" id="roleta">
-          <span class="reward-tag">ROLETA DA SORTE</span>
-          <h2>Seu próximo giro começa aqui</h2>
-          <p>Insira o código e gire para revelar seu prêmio.</p>
-          <div class="wheel-frame">
-            <div class="wheel-pointer" aria-hidden="true"></div>
-            <div class="luck-wheel" id="luckWheel" aria-hidden="true">
-              <span style="--angle:30deg">R$ 2</span><span style="--angle:90deg">R$ 5</span><span style="--angle:150deg">R$ 10</span>
-              <span style="--angle:210deg">R$ 2</span><span style="--angle:270deg">R$ 5</span><span style="--angle:330deg">R$ 10</span>
+        <section class="invite-box" id="indicacaoBox">
+          <div class="invite-top">
+            <div class="invite-ico ico-star" aria-hidden="true"></div>
+            <div class="invite-txt">
+              <h2>Indique e ganhe</h2>
+              <p>Ganhe <strong>R$ 2,00</strong> por amigo que se cadastrar pelo seu link e ativar um plano pago.</p>
             </div>
-            <div class="wheel-hub" aria-hidden="true">T</div>
+            <span class="invite-badge">R$ 2,00</span>
           </div>
-          <form id="wheelForm">
-            <label for="wheelCode">Código para girar</label>
-            <div class="input-wrap"><input id="wheelCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="wheelHint wheelResult"></div>
-            <p class="reward-hint" id="wheelHint">Digite o código fornecido pela administração para girar.</p>
-            <button id="spinButton" class="primary" type="submit">Girar roleta</button>
-          </form>
-          <p class="reward-result" id="wheelResult" role="status" aria-live="polite"></p>
-        </article>
-      </section>
+          <div class="invite-bottom">
+            <div class="invite-field">
+              <span>Seu link de indicação</span>
+              <input id="linkIndicacao" readonly aria-label="Seu link de indicação" onclick="this.select();">
+            </div>
+            <button class="invite-copy" onclick="copiarLinkIndicacao()" title="Copiar link">Copiar link</button>
+          </div>
+          <div class="invite-code">Código: <strong id="codigoIndicacao">----</strong></div>
+        </section>
 
-      <section class="panel plans-section" id="planos">
-        <div class="section-heading"><h2>Escolha um Plano</h2><span>Conheça as opções</span></div>
-        <div class="planos-grid" id="listaPlanos"></div>
-      </section>
+        <section class="rewards-grid" id="recompensas" aria-label="Bônus e sorte">
+          <article class="panel reward-card" id="bonus">
+            <span class="reward-tag">BÔNUS VELOSTER</span>
+            <h2>Resgatar bônus</h2>
+            <p>Digite seu código para descobrir seu bônus.</p>
+            <form id="bonusForm">
+              <label for="bonusCode">Código do bônus</label>
+              <div class="input-wrap"><input id="bonusCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="bonusHint bonusResult"></div>
+              <p class="reward-hint" id="bonusHint">Digite o código promocional e receba o valor direto no saldo. Cada código pode ser usado uma vez.</p>
+              <button class="primary" type="submit">Resgatar bônus</button>
+            </form>
+            <p class="reward-result" id="bonusResult" role="status" aria-live="polite"></p>
+          </article>
 
-      <section class="panel movements">
-        <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato <span class="ico ico-arrow" aria-hidden="true"></span></button></div>
-        <div id="extratoResumo"><p class="empty-state">Carregando...</p></div>
-      </section>
+          <article class="panel reward-card" id="roleta">
+            <span class="reward-tag">ROLETA DA SORTE</span>
+            <h2>Seu próximo giro começa aqui</h2>
+            <p>Insira o código e gire para revelar seu prêmio.</p>
+            <div class="wheel-frame">
+              <div class="wheel-pointer" aria-hidden="true"></div>
+              <div class="luck-wheel" id="luckWheel" aria-hidden="true">
+                <span style="--angle:30deg">R$ 2</span><span style="--angle:90deg">R$ 5</span><span style="--angle:150deg">R$ 10</span>
+                <span style="--angle:210deg">R$ 2</span><span style="--angle:270deg">R$ 5</span><span style="--angle:330deg">R$ 10</span>
+              </div>
+              <div class="wheel-hub" aria-hidden="true">V</div>
+            </div>
+            <form id="wheelForm">
+              <label for="wheelCode">Código para girar</label>
+              <div class="input-wrap"><input id="wheelCode" name="codigo" placeholder="Digite seu código" required maxlength="64" autocomplete="off" spellcheck="false" aria-describedby="wheelHint wheelResult"></div>
+              <p class="reward-hint" id="wheelHint">Digite o código fornecido pela administração para girar.</p>
+              <button id="spinButton" class="primary" type="submit">Girar roleta</button>
+            </form>
+            <p class="reward-result" id="wheelResult" role="status" aria-live="polite"></p>
+          </article>
+        </section>
+
+        <section class="panel movements" id="movimentacoes">
+          <div class="section-heading"><h2>Últimas Movimentações</h2><button onclick="mostrarExtrato()">Ver extrato <span class="ico ico-arrow" aria-hidden="true"></span></button></div>
+          <div id="extratoResumo"><p class="empty-state">Carregando...</p></div>
+        </section>
       </div><!-- /abaInicio -->
 
       <div id="abaEquipe" class="hidden">
         <section class="panel team-panel">
-          <div class="section-heading"><h2>EQUIPE</h2><span>Seu time de indicados</span></div>
+          <div class="section-heading"><h2>Equipe</h2><span>Seu time de indicados</span></div>
           <div class="team-total">
             <div class="team-total-ico ico-users" aria-hidden="true"></div>
             <div><span>TOTAL INDICADOS</span><strong id="totalIndicados">0</strong></div>
@@ -139,7 +174,7 @@
         </section>
 
         <section class="panel team-panel">
-          <div class="section-heading"><h2>METAS</h2><span>Alcance e resgate seus prêmios</span></div>
+          <div class="section-heading"><h2>Metas</h2><span>Alcance e resgate seus prêmios</span></div>
           <div class="goals-grid">
             <article class="goal-card" id="meta20">
               <div class="goal-top"><span class="goal-ico ico-medal goal-bronze" aria-hidden="true"></span><span class="goal-tag">META 01</span></div>
@@ -171,7 +206,7 @@
     </main>
   </div>
 
-  <footer class="dashboard-footer">TAXINEXO INVESTIMENTOS<small>JUNTOS NO SEU CRESCIMENTO</small></footer>
+  <footer class="dashboard-footer">VELOSTER CAPITAL INVESTIMENTOS<small>JUNTOS NO SEU CRESCIMENTO</small></footer>
 
   <!-- Depósito -->
   <dialog class="panel money-dialog" id="depositoDialog" aria-labelledby="depositoTitulo">
@@ -255,7 +290,20 @@
   <script src="script.js"></script>
   <script src="carrossel.js"></script>
   <script>
-    // Preenche o select de planos e o resumo do extrato após a carga
+    // Navegação lateral: rola até a seção e mantém o item ativo
+    function irSecao(id) {
+      const equipe = document.getElementById('abaEquipe');
+      if (equipe && !equipe.classList.contains('hidden')) alternarAba('inicio');
+      setTimeout(() => {
+        const alvo = document.getElementById(id);
+        if (alvo) alvo.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 70);
+      document.querySelectorAll('.dash-nav button').forEach(b => b.classList.remove('ativa'));
+      const btn = document.querySelector('.dash-nav [data-sec="' + id + '"]');
+      if (btn) btn.classList.add('ativa');
+    }
+    window.irSecao = irSecao;
+
     window.addEventListener('load', () => {
       const sel = document.getElementById('investirPlano');
       if (sel) sel.innerHTML = planos.map(p => `<option value="${p.id}">${p.nome} — ${fmtBRL(p.entrada)}</option>`).join('');
@@ -270,9 +318,10 @@
     });
   </script>
 
-<!-- Grupo WhatsApp -->
-<a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
-  <span class="ico ico-message" aria-hidden="true"></span> Grupo
-</a>
+  <!-- Grupo WhatsApp -->
+  <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Veloster Capital">
+    <span class="ico ico-message" aria-hidden="true"></span> Grupo
+  </a>
+
 </body>
 </html>

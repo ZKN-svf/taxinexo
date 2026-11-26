@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taxinexo | Cadastrar-se</title>
+  <title>Veloster Capital | Criar conta</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
   <link rel="stylesheet" href="style-laranja.css" id="themeCss">
   <link rel="stylesheet" href="tema.css">
+  <link rel="stylesheet" href="style-veloster.css">
   <script>
     (function(){try{
       var t = localStorage.getItem('taxinexo_tema') || 'claro';
@@ -19,25 +20,37 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="auth-page">
-  <main class="auth-shell">
-    <header class="auth-brand"><img src="login-header.webp" alt="Taxinexo Investimento"></header>
-    <section class="auth-card">
-      <h1><span class="user-icon" aria-hidden="true"></span>Cadastrar-se</h1>
-      <p class="auth-description">Preencha os dados abaixo para criar sua conta.</p>
+<body class="auth-page auth-page-split auth-page-reverse">
+
+  <main class="auth-shell auth-split">
+
+    <!-- Formulário -->
+    <section class="auth-card auth-card-new">
+      <div class="auth-brand auth-brand-mini">
+        <img src="brand-transparent.png" alt="Veloster Capital">
+      </div>
+
+      <span class="auth-kicker">Nova conta</span>
+      <h1>Crie sua conta</h1>
+      <p class="auth-description">Leva menos de 2 minutos. Comece com o plano gratuito e evolua no seu ritmo.</p>
+
       <form id="cadastroForm" onsubmit="event.preventDefault(); fazerCadastro()">
-        <label class="input-wrap"><span class="ico ico-user" aria-hidden="true"></span><input id="nome" autocomplete="name" placeholder="Nome completo" aria-label="Nome completo" required></label>
-        <label class="input-wrap"><span class="ico ico-id" aria-hidden="true"></span><input id="cpf" inputmode="numeric" placeholder="CPF" aria-label="CPF" maxlength="14" oninput="formatarCPF(this)" required></label>
-        <label class="input-wrap"><span class="ico ico-phone" aria-hidden="true"></span><input id="celular" type="tel" inputmode="tel" placeholder="Celular" aria-label="Celular" maxlength="15" oninput="formatarCelular(this)" required></label>
-        <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
-        <label class="input-wrap"><span class="ico ico-key" aria-hidden="true"></span><input id="pix" placeholder="Chave Pix (CPF, CNPJ, e-mail, celular ou aleatória)" aria-label="Chave Pix" required></label>
-        <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="new-password" placeholder="Crie sua senha" aria-label="Crie sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
-        <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita sua senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')"></button></div>
-        <label class="input-wrap"><span class="ico ico-star" aria-hidden="true"></span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
-        <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:12px 0;color:var(--muted);"><input type="checkbox" id="termos" required> Li e aceito os <a href="termos.html">termos de uso</a>.</label>
+        <div class="auth-form-grid">
+          <label class="input-wrap"><span class="ico ico-user" aria-hidden="true"></span><input id="nome" autocomplete="name" placeholder="Nome completo" aria-label="Nome completo" required></label>
+          <label class="input-wrap"><span class="ico ico-id" aria-hidden="true"></span><input id="cpf" inputmode="numeric" placeholder="CPF" aria-label="CPF" maxlength="14" oninput="formatarCPF(this)" required></label>
+          <label class="input-wrap"><span class="ico ico-phone" aria-hidden="true"></span><input id="celular" type="tel" inputmode="tel" placeholder="Celular" aria-label="Celular" maxlength="15" oninput="formatarCelular(this)" required></label>
+          <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
+          <label class="input-wrap form-full"><span class="ico ico-key" aria-hidden="true"></span><input id="pix" placeholder="Chave Pix (CPF, CNPJ, e-mail, celular ou aleatória)" aria-label="Chave Pix" required></label>
+          <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="new-password" placeholder="Crie sua senha" aria-label="Crie sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
+          <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="confirmarSenha" autocomplete="new-password" placeholder="Repita a senha" aria-label="Repita sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'confirmarSenha')"></button></div>
+          <label class="input-wrap form-full"><span class="ico ico-star" aria-hidden="true"></span><input id="indicacao" placeholder="Código de indicação (opcional)" aria-label="Código de indicação" maxlength="12" style="text-transform:uppercase;"></label>
+        </div>
+
+        <label class="auth-terms"><input type="checkbox" id="termos" required> Li e aceito os <a href="termos.html">termos de uso</a>.</label>
         <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="register" data-theme="light"></div>
-        <button class="primary" type="submit">Cadastrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
+        <button class="primary" type="submit">Criar conta <span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
+
       <div class="google-area">
         <div class="google-sep"><span>ou cadastre-se com</span></div>
         <div id="g_id_onload"
@@ -47,10 +60,28 @@
         <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
              data-text="signup_with" data-shape="rectangular" data-logo_alignment="left"></div>
       </div>
-      <p class="link">Já tem conta? <a href="index.html">Entrar</a></p>
+
+      <div class="auth-links">
+        <p class="link">Já tem conta? <a href="index.html">Entrar</a></p>
+      </div>
     </section>
-    <footer class="auth-footer" role="img" aria-label="Seu futuro começa agora"></footer>
+
+    <!-- Painel visual -->
+    <section class="auth-visual auth-visual-alt" aria-hidden="true">
+      <div class="auth-visual-img"></div>
+      <div class="auth-visual-body">
+        <span class="auth-visual-kicker">Comece com o plano gratuito</span>
+        <h2>Três passos para começar</h2>
+        <ul class="auth-visual-list">
+          <li><span class="ico ico-user" aria-hidden="true"></span> Crie sua conta em poucos minutos</li>
+          <li><span class="ico ico-trending" aria-hidden="true"></span> Escolha o plano que combina com você</li>
+          <li><span class="ico ico-wallet" aria-hidden="true"></span> Acompanhe seus ganhos e saques</li>
+        </ul>
+      </div>
+    </section>
+
   </main>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="pagamentos.js"></script>
@@ -70,9 +101,10 @@
     })();
   </script>
 
-<!-- Grupo WhatsApp -->
-<a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
-  <span class="ico ico-message" aria-hidden="true"></span> Grupo
-</a>
+  <!-- Grupo WhatsApp -->
+  <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Veloster Capital">
+    <span class="ico ico-message" aria-hidden="true"></span> Grupo
+  </a>
+
 </body>
 </html>

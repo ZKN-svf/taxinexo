@@ -56,7 +56,7 @@ const CONFIG = {
 
 // Planos do Taxinexo: 20 diárias iguais ao total do plano (capital diluído no período).
 const planos = [
-  { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10 },
+  { id: 0, nome: 'Veloster Capital Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10 },
   { id: 1, nome: 'Plano 15', entrada: 15, diaria: 1.28, ciclo: 20, retorno: 25.60 },
   { id: 2, nome: 'Plano 25', entrada: 25, diaria: 2.13, ciclo: 20, retorno: 42.60 },
   { id: 3, nome: 'Plano 50', entrada: 50, diaria: 4.25, ciclo: 20, retorno: 85 },
@@ -454,6 +454,7 @@ function alternarAba(nome) {
   if (inicio) inicio.classList.toggle('hidden', nome !== 'inicio');
   if (equipe) equipe.classList.toggle('hidden', nome !== 'equipe');
   document.querySelectorAll('.dash-tab').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  document.querySelectorAll('.dash-nav .dash-link').forEach(b => b.classList.remove('ativa'));
   if (nome === 'equipe') carregarEquipe();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -585,7 +586,7 @@ async function carregarPlanos() {
     <article class="plano-card" aria-label="${p.nome}">
       <h4>${p.nome.toUpperCase()}</h4>
       <span class="plano-selo">${selo}</span>
-      <img class="plan-car" src="plan-car.webp" alt="Carro Taxinexo" width="1000" height="534" loading="lazy">
+      <img class="plan-car" src="plan-car.webp" alt="Carro Veloster Capital" width="1408" height="752" loading="lazy">
       <dl class="plan-facts">
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('entrada')}</span><dt>Entrada</dt><dd>${fmtBRL(p.entrada)}</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('diaria')}</span><dt>Diária</dt><dd>${fmtBRL(p.diaria)}</dd></div>
@@ -763,7 +764,7 @@ async function gerarPix() {
   setMensagem('depositoMsg', 'Gerando seu PIX...', 'loading');
 
   try {
-    const r = await SigiloPay.criarCobrancaPIX(valor, 'Depósito Taxinexo', u.email, u.id);
+    const r = await SigiloPay.criarCobrancaPIX(valor, 'Depósito Veloster Capital', u.email, u.id);
     if (!r.sucesso) return setMensagem('depositoMsg', 'Erro: ' + r.mensagem, 'error');
     pixAtual = r;
 
@@ -1439,7 +1440,7 @@ function renderCoresPreset() {
 }
 
 function atualizarPreviewCor(cor) {
-  const c = String(cor || '#f97316');
+  const c = String(cor || '#d97706');
   if (el('adminCorCodigo')) el('adminCorCodigo').textContent = c.toUpperCase();
   const btn = el('adminCorPreviewBtn');
   if (btn) {
@@ -1460,13 +1461,13 @@ function adminSelecionarCor(cor) {
 
 async function adminCarregarAparencia() {
   renderCoresPreset();
-  let cfg = { nome: 'Taxinexo', cor: '#f97316' };
+  let cfg = { nome: 'Veloster Capital', cor: '#d97706' };
   try {
     if (db) {
       const s = await db.child('config/marca').once('value');
       const m = s.val();
       if (m && typeof m === 'object') {
-        cfg = { nome: String(m.nome || 'Taxinexo'), cor: String(m.cor || '#f97316') };
+        cfg = { nome: String(m.nome || 'Veloster Capital'), cor: String(m.cor || '#d97706') };
       }
     }
   } catch (e) { console.warn('[Aparência]', e); }
@@ -1478,8 +1479,8 @@ async function adminCarregarAparencia() {
 
 async function adminSalvarAparencia() {
   if (!db) return setMensagem('adminAparenciaMsg', 'Firebase não conectado.', 'error');
-  const nome = String(el('adminNomePlataforma')?.value || '').trim().slice(0, 24) || 'Taxinexo';
-  const cor = String(el('adminCorPrimaria')?.value || '#f97316').trim();
+  const nome = String(el('adminNomePlataforma')?.value || '').trim().slice(0, 24) || 'Veloster Capital';
+  const cor = String(el('adminCorPrimaria')?.value || '#d97706').trim();
   if (!/^#[0-9a-f]{6}$/i.test(cor)) return setMensagem('adminAparenciaMsg', 'Cor inválida. Use o seletor de cor.', 'error');
   try {
     await db.child('config/marca').set({ nome, cor, atualizado_em: new Date().toISOString() });
@@ -1783,3 +1784,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Compatibilidade com o HTML antigo (chamadas inline)
 function mostrarExtratoAntigo() { mostrarExtrato(); }
+

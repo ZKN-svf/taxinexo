@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Taxinexo | Entrar</title>
+  <title>Veloster Capital | Entrar</title>
   <link rel="stylesheet" href="style.css">
   <link rel="stylesheet" href="style-premium.css">
   <link rel="stylesheet" href="style-laranja.css" id="themeCss">
   <link rel="stylesheet" href="tema.css">
+  <link rel="stylesheet" href="style-veloster.css">
   <script>
     (function(){try{
       var t = localStorage.getItem('taxinexo_tema') || 'claro';
@@ -19,18 +20,48 @@
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
-<body class="auth-page">
-  <div id="taxCarousel" class="tax-carousel hidden" aria-label="Destaques"></div>
-  <main class="auth-shell">
-    <header class="auth-brand"><img src="login-header.webp" alt="Taxinexo Investimento"></header>
-    <section class="auth-card">
-      <h1><span class="user-icon" aria-hidden="true"></span>Entrar</h1>
+<body class="auth-page auth-page-split">
+
+  <main class="auth-shell auth-split">
+
+    <!-- Painel visual -->
+    <section class="auth-visual" aria-hidden="true">
+      <div class="auth-visual-img"></div>
+      <div class="auth-visual-body">
+        <span class="auth-visual-kicker">Investimentos inteligentes</span>
+        <h2>Seu futuro<br>começa agora</h2>
+        <p>Acompanhe seus rendimentos, faça saques e cresça com segurança em uma plataforma feita para você.</p>
+        <ul class="auth-visual-list">
+          <li><span class="ico ico-trending" aria-hidden="true"></span> Rendimento diário no seu saldo</li>
+          <li><span class="ico ico-wallet" aria-hidden="true"></span> Saques disponíveis 24 horas</li>
+          <li><span class="ico ico-lock" aria-hidden="true"></span> Ambiente protegido e verificado</li>
+        </ul>
+        <div class="auth-visual-stats">
+          <div><strong>20</strong><span>dias de ciclo</span></div>
+          <div><strong>24h</strong><span>para sacar</span></div>
+          <div><strong>100%</strong><span>digital</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Formulário -->
+    <section class="auth-card auth-card-new">
+      <div class="auth-brand auth-brand-mini">
+        <img src="brand-transparent.png" alt="Veloster Capital">
+      </div>
+
+      <span class="auth-kicker">Acesso à conta</span>
+      <h1>Bem-vindo de volta</h1>
+      <p class="auth-description">Entre para acompanhar seus investimentos e saldos.</p>
+
       <form id="loginForm" onsubmit="event.preventDefault(); fazerLogin()">
         <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
         <div class="input-wrap"><span class="ico ico-lock" aria-hidden="true"></span><input type="password" id="senha" autocomplete="current-password" placeholder="Sua senha" aria-label="Sua senha" required><button type="button" class="password-toggle" aria-label="Mostrar senha" aria-pressed="false" onclick="alternarSenha(this,'senha')"></button></div>
+
         <div class="cf-turnstile" data-sitekey="0x4AAAAAAGTNnKaP2FuE_P5_" data-action="login" data-theme="light"></div>
-        <button class="primary" type="submit">Entrar<span class="ico ico-arrow" aria-hidden="true"></span></button>
+        <button class="primary" type="submit">Entrar <span class="ico ico-arrow" aria-hidden="true"></span></button>
       </form>
+
       <div class="google-area">
         <div class="google-sep"><span>ou entre com</span></div>
         <div id="g_id_onload"
@@ -40,20 +71,24 @@
         <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline"
              data-text="signin_with" data-shape="rectangular" data-logo_alignment="left"></div>
       </div>
-      <p class="link">Não tem conta? <a href="cadastro.html">Cadastre-se</a></p>
-      <p class="link" style="margin-top:8px;font-size:12px;"><a href="admin.html">Acesso administrativo</a></p>
+
+      <div class="auth-links">
+        <p class="link">Não tem conta? <a href="cadastro.html">Cadastre-se</a></p>
+        <p class="link"><a href="admin.html">Acesso administrativo</a></p>
+      </div>
     </section>
-    <footer class="auth-footer" role="img" aria-label="Seu futuro começa agora"></footer>
+
   </main>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
   <script src="pagamentos.js"></script>
   <script src="script.js"></script>
-  <script src="carrossel.js"></script>
 
-<!-- Grupo WhatsApp -->
-<a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Taxinexo">
-  <span class="ico ico-message" aria-hidden="true"></span> Grupo
-</a>
+  <!-- Grupo WhatsApp -->
+  <a class="grp-whats" id="linkGrupo" href="https://chat.whatsapp.com/D1oeBvP9L0a86cf6ZgWXgP?s=cl&p=a&iam=2" target="_blank" rel="noopener" aria-label="Entrar no grupo do WhatsApp" title="Grupo Veloster Capital">
+    <span class="ico ico-message" aria-hidden="true"></span> Grupo
+  </a>
+
 </body>
 </html>

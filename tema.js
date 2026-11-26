@@ -10,8 +10,8 @@
 
   var CHAVE_TEMA = 'taxinexo_tema';
   var CHAVE_MARCA = 'taxinexo_marca';
-  var NOME_PADRAO = 'Taxinexo';
-  var COR_PADRAO = '#f97316';
+  var NOME_PADRAO = 'Veloster Capital';
+  var COR_PADRAO = '#d97706';
   var CONFIG_URL = 'https://zkn-ss-default-rtdb.firebaseio.com/taxinexo/config/marca.json';
 
   var marcaAtual = { nome: NOME_PADRAO, cor: COR_PADRAO };
@@ -126,9 +126,10 @@
     set('--shadow-glow', '0 20px 50px -26px rgba(' + r + ',' + g + ',' + b + ',.38)');
 
     if (tema === 'claro') {
-      set('--text', hslHex(hsl.h, Math.min(hsl.s, 0.30), 0.12));
-      set('--muted', hslHex(hsl.h, Math.min(hsl.s, 0.18), 0.46));
-      set('--ink-soft', hslHex(hsl.h, Math.min(hsl.s, 0.26), 0.30));
+      // Texto em azul-marinho (combina com a marca Veloster) e fundos quentes.
+      set('--text', '#0b1b33');
+      set('--muted', '#5f6f86');
+      set('--ink-soft', '#203a5c');
       set('--bg', misturar(c, '#ffffff', 0.965));
       set('--soft-1', misturar(c, '#ffffff', 0.94));
       set('--soft-2', misturar(c, '#ffffff', 0.90));
@@ -183,8 +184,8 @@
     return nome;
   }
   function trocarMarca(texto, nome) {
-    // Não troca quando faz parte de e-mail (ex.: taxinexo@gmail.com)
-    return String(texto == null ? '' : texto).replace(/taxinexo(?![\w.+-]*@)/gi, function (m) {
+    // Troca as marcas antigas/nova pelo nome configurado, sem tocar em e-mails.
+    return String(texto == null ? '' : texto).replace(/(taxinexo|veloster\s+capital)(?![\w.+-]*@)/gi, function (m) {
       return casoDoNome(m, nome);
     });
   }
