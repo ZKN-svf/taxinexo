@@ -54,16 +54,16 @@ const CONFIG = {
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo: 20 dias, rendimento de 3,5% ao dia + capital no fim.
+// Planos do Taxinexo: 20 diárias iguais ao total do plano (capital diluído no período).
 const planos = [
   { id: 0, nome: 'Taxinexo Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10 },
-  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 0.53, ciclo: 20, retorno: 25.60 },
-  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 0.88, ciclo: 20, retorno: 42.60 },
-  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 1.75, ciclo: 20, retorno: 85 },
-  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 3.50, ciclo: 20, retorno: 170 },
-  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 17.50, ciclo: 20, retorno: 850 },
-  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 24.50, ciclo: 20, retorno: 1190 },
-  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 35.00, ciclo: 20, retorno: 1700 }
+  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 1.28, ciclo: 20, retorno: 25.60 },
+  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 2.13, ciclo: 20, retorno: 42.60 },
+  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 4.25, ciclo: 20, retorno: 85 },
+  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 8.50, ciclo: 20, retorno: 170 },
+  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 42.50, ciclo: 20, retorno: 850 },
+  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 59.50, ciclo: 20, retorno: 1190 },
+  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 85.00, ciclo: 20, retorno: 1700 }
 ];
 
 // ------------------------------------------------------------
@@ -198,6 +198,20 @@ function setMensagem(id, texto, estado) {
 }
 function toast(msg) {
   try {
+    const texto = String(msg == null ? '' : msg);
+    // Se houver um modal aberto, o toast ficaria atrás dele (top layer).
+    // Espelha a mensagem dentro do próprio modal, no aviso acima do botão.
+    const dialogo = document.querySelector('dialog[open]');
+    if (dialogo) {
+      const alvo = dialogo.querySelector('.reward-result');
+      if (alvo) {
+        alvo.textContent = texto;
+        const sucesso = /sucesso|enviad|conclu|realizad|criad|atualizad|liberad/i.test(texto);
+        alvo.dataset.state = sucesso ? 'success' : 'error';
+        try { alvo.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+      }
+    }
+
     let box = document.getElementById('toastBox');
     if (!box) {
       box = document.createElement('div');
@@ -208,7 +222,7 @@ function toast(msg) {
     const t = document.createElement('div');
     t.className = 'toast';
     t.setAttribute('role', 'status');
-    t.textContent = String(msg == null ? '' : msg);
+    t.textContent = texto;
     box.appendChild(t);
     requestAnimationFrame(() => t.classList.add('show'));
     setTimeout(() => {
@@ -216,6 +230,15 @@ function toast(msg) {
       setTimeout(() => t.remove(), 300);
     }, 4600);
   } catch (_) { alert(msg); }
+}
+
+// Mensagem de saque exibida dentro do modal, acima do botão Sacar
+function avisoSaque(texto, estado = 'error') {
+  setMensagem('saqueMsg', texto, estado);
+  const alvo = el('saqueMsg');
+  if (alvo) {
+    try { alvo.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } catch (_) {}
+  }
 }
 
 // Token do Cloudflare Turnstile gerado pelo widget da página
@@ -897,25 +920,25 @@ async function contarSaquesHoje(uid) {
 async function confirmarSaque(ev) {
   const valor = lerValor(el('saqueValor').value);
   const pix = el('saquePix').value.trim();
-  const u = usuarioLocal(); if (!u) return toast('Faça login primeiro.');
+  const u = usuarioLocal(); if (!u) return avisoSaque('Faça login primeiro.');
 
   const controle = await saquesEstaoBloqueados();
-  if (controle.bloqueado) return toast(controle.mensagem);
-  if (!horarioSaquePermitido()) return toast(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h às ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
-  if (!(valor >= CONFIG.saqueMinimo)) return toast(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
+  if (controle.bloqueado) return avisoSaque(controle.mensagem);
+  if (!horarioSaquePermitido()) return avisoSaque(`Saques permitidos das ${CONFIG.horarioSaqueInicio}h às ${CONFIG.horarioSaqueFim}h. Disponível: ${proximoHorarioSaque()}.`);
+  if (!(valor >= CONFIG.saqueMinimo)) return avisoSaque(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
   const chavePix = SigiloPay.validarChavePix(pix);
-  if (!chavePix.valida) return toast('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
+  if (!chavePix.valida) return avisoSaque('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
   const feitos = await contarSaquesHoje(u.id);
-  if (feitos >= CONFIG.saquesPorDia) return toast(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
-  if ((Number(u.saldo) || 0) < valor) return toast(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
+  if (feitos >= CONFIG.saquesPorDia) return avisoSaque(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
+  if ((Number(u.saldo) || 0) < valor) return avisoSaque(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
   // Só permite saque para quem já fez um depósito real.
-  if ((Number(u.total_depositado) || 0) <= 0) return toast('Você precisa fazer um depósito antes de solicitar um saque.');
-  if (!db) return toast('Firebase não conectado.');
+  if ((Number(u.total_depositado) || 0) <= 0) return avisoSaque('Você precisa fazer um depósito antes de solicitar um saque.');
+  if (!db) return avisoSaque('Firebase não conectado.');
 
   const c = calcularSaque(valor);
   if (typeof SigiloPay !== 'undefined' && SigiloPay.consultarSaldo) {
     const s = await SigiloPay.consultarSaldo();
-    if (s.sucesso && s.available < c.liquido) return toast('Saque temporariamente indisponível: saldo em processamento.');
+    if (s.sucesso && s.available < c.liquido) return avisoSaque('Saque temporariamente indisponível: saldo em processamento.');
   }
 
   if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocê recebe: ${fmtBRL(c.liquido)}`)) return;
@@ -948,9 +971,9 @@ async function confirmarSaque(ev) {
       db.child('plataforma/taxas_recebidas').transaction(v => (v || 0) + c.taxa);
       u.saldo = novoSaldo; salvarUsuarioLocal(u);
     }
-    toast(`Saque enviado!\n\nVocê recebe: ${fmtBRL(c.liquido)}`);
-    const d = el('saqueDialog'); if (d) d.close();
-    setTimeout(() => location.reload(), 1200);
+    avisoSaque(`Saque enviado! Você recebe ${fmtBRL(c.liquido)}.`, 'success');
+    const d = el('saqueDialog');
+    setTimeout(() => { if (d) d.close(); location.reload(); }, 2000);
   } catch (e) {
     console.error('[Saque]', e);
     setMensagem('saqueMsg', 'Erro ao solicitar saque: ' + e.message, 'error');
@@ -1396,16 +1419,12 @@ async function processarRendimentos(ev) {
   if (!confirm('Processar rendimentos de TODOS os clientes agora?')) return;
   const btn = ev && ev.currentTarget ? ev.currentTarget : (ev && ev.target);
   const original = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = 'Verificando saldo...'; }
+  if (btn) { btn.disabled = true; btn.innerHTML = 'Processando...'; }
   try {
-    const saldo = await SigiloPay.consultarSaldo();
-    if (!saldo.sucesso) return toast('Não foi possível consultar o saldo da SigiloPay.');
     const snap = await db.child('investimentos').once('value');
     const dados = snap.val() || {};
     const ativos = Object.entries(dados).filter(([k, i]) => i.status === 'ativo');
-    const necessario = ativos.reduce((a, [k, i]) => a + (Number(i.rendimento_diario) || 0), 0);
     if (!ativos.length) return toast('Nenhum investimento ativo.');
-    if (saldo.available < necessario) return toast(`Saldo insuficiente na SigiloPay. Disponível: ${fmtBRL(saldo.available)}. Necessário: ${fmtBRL(necessario)}.`);
 
     if (btn) btn.innerHTML = 'Processando...';
     let creditados = 0, total = 0, finalizados = 0;
@@ -1433,20 +1452,21 @@ async function processarRendimentos(ev) {
       if (dias >= duracao) {
         await db.child('investimentos/' + key + '/status').set('concluido');
         await db.child('investimentos/' + key + '/concluido_em').set(new Date().toISOString());
-        const aplicado = Number(inv.valor_aplicado) || 0;
-        const saldo2 = await SigiloPay.consultarSaldo();
-        if (!saldo2.sucesso || saldo2.available < aplicado) continue;
-        const us2 = await db.child('usuarios/' + inv.usuario_id).once('value');
-        if (us2.exists()) {
-          const uk2 = inv.usuario_id;
-          const user2 = us2.val();
-          await db.child('usuarios/' + uk2 + '/saldo').set((Number(user2.saldo) || 0) + aplicado);
-          const txRet = await db.child('transacoes').push({
-            usuario_id: inv.usuario_id, usuario_email: inv.usuario_email, usuario_nome: inv.usuario_nome,
-            tipo: 'retorno', valor: aplicado, status: 'aprovada',
-            observacao: `Retorno do investimento — ${inv.plano_nome}`, criado_em: new Date().toISOString()
-          });
-          await db.child('transacoes_usuario/' + uk2 + '/' + txRet.key).set(true);
+        // Planos novos já diluem o capital nas diárias; não devolve de novo.
+        if (inv.capital_incluido !== true) {
+          const aplicado = Number(inv.valor_aplicado) || 0;
+          const us2 = await db.child('usuarios/' + inv.usuario_id).once('value');
+          if (us2.exists()) {
+            const uk2 = inv.usuario_id;
+            const user2 = us2.val();
+            await db.child('usuarios/' + uk2 + '/saldo').set((Number(user2.saldo) || 0) + aplicado);
+            const txRet = await db.child('transacoes').push({
+              usuario_id: inv.usuario_id, usuario_email: inv.usuario_email, usuario_nome: inv.usuario_nome,
+              tipo: 'retorno', valor: aplicado, status: 'aprovada',
+              observacao: `Retorno do investimento — ${inv.plano_nome}`, criado_em: new Date().toISOString()
+            });
+            await db.child('transacoes_usuario/' + uk2 + '/' + txRet.key).set(true);
+          }
         }
         finalizados++;
       }

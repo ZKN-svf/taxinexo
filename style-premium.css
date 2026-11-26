@@ -1530,3 +1530,35 @@ button:disabled{cursor:wait;opacity:.6}
   .admin-head-txt h1{font-size:21px}
   .admin-page .admin-table-card{padding:14px}
 }
+
+/* ============================================================
+   23. MENSAGENS DENTRO DOS MODAIS (saque, depósito, investir)
+   ============================================================ */
+.money-dialog .reward-result{
+  min-height:0;margin:12px 0 6px;padding:0;
+  border:1px solid transparent;border-radius:10px;
+  font-size:12px;font-weight:600;line-height:1.45;overflow-wrap:anywhere;
+  transition:padding .15s,background .15s,border-color .15s;
+}
+.money-dialog .reward-result:not(:empty){
+  padding:11px 13px;background:rgba(3,10,24,.55);border-color:rgba(125,180,255,.18);
+}
+.money-dialog .reward-result[data-state="error"]:not(:empty){
+  color:#ffc2ca;background:rgba(251,113,133,.12);border-color:rgba(251,113,133,.45);
+}
+.money-dialog .reward-result[data-state="success"]:not(:empty){
+  color:#7cf0c0;background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.45);
+}
+.money-dialog .reward-result[data-state="loading"]:not(:empty){
+  color:#a5e9ff;background:rgba(34,211,238,.1);border-color:rgba(34,211,238,.35);
+}
+.money-dialog #saqueMsg:not(:empty){position:relative;padding-left:36px}
+.money-dialog #saqueMsg:not(:empty)::before{
+  content:'';position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  width:14px;height:14px;background:currentColor;
+  -webkit-mask:var(--i-check) center/contain no-repeat;mask:var(--i-check) center/contain no-repeat;
+}
+.money-dialog #saqueMsg[data-state="error"]:not(:empty)::before{
+  -webkit-mask-image:var(--i-ban);mask-image:var(--i-ban);
+}
+.money-dialog #saqueMsg:not(:empty){animation:fadeUp .2s ease both}
