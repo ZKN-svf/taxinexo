@@ -37,7 +37,7 @@
       <form id="cadastroForm" onsubmit="event.preventDefault(); fazerCadastro()">
         <div class="auth-form-grid">
           <label class="input-wrap"><span class="ico ico-user" aria-hidden="true"></span><input id="nome" autocomplete="name" placeholder="Nome completo" aria-label="Nome completo" required></label>
-          <label class="input-wrap"><span class="ico ico-id" aria-hidden="true"></span><input id="cpf" inputmode="numeric" placeholder="CPF" aria-label="CPF" maxlength="14" oninput="formatarCPF(this)" required></label>
+          <label class="input-wrap"><span class="ico ico-id" aria-hidden="true"></span><input id="cpf" inputmode="numeric" placeholder="CPF (opcional)" aria-label="CPF (opcional)" maxlength="14" oninput="formatarCPF(this)"></label>
           <label class="input-wrap"><span class="ico ico-phone" aria-hidden="true"></span><input id="celular" type="tel" inputmode="tel" placeholder="Celular" aria-label="Celular" maxlength="15" oninput="formatarCelular(this)" required></label>
           <label class="input-wrap"><span class="ico ico-mail" aria-hidden="true"></span><input type="email" id="email" autocomplete="email" placeholder="Seu e-mail" aria-label="Seu e-mail" required></label>
           <label class="input-wrap form-full"><span class="ico ico-key" aria-hidden="true"></span><input id="pix" placeholder="Chave Pix (CPF, CNPJ, e-mail, celular ou aleatória)" aria-label="Chave Pix" required></label>

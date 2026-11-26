@@ -165,14 +165,10 @@ html[data-marca="custom"] .auth-split .auth-brand-mini .auth-brand-name{
 }
 html[data-marca="custom"] .auth-split .auth-brand-mini .auth-brand-sub{display:none}
 
-/* tema escuro: logo navy ganha um fundo claro para leitura */
-html[data-tema="escuro"] .topbar>a{
-  background:rgba(255,255,255,.93);padding:6px 10px;border-radius:12px;
-  box-shadow:0 8px 22px -16px rgba(0,0,0,.6);
-}
-html[data-tema="escuro"] .auth-split .auth-brand-mini{
-  background:rgba(255,255,255,.94);padding:8px 12px;border-radius:14px;
-  width:max-content;max-width:100%;
+/* tema escuro: clareia o logo transparente, sem criar fundo branco */
+html[data-tema="escuro"] .topbar a img,
+html[data-tema="escuro"] .auth-split .auth-brand-mini img{
+  filter:brightness(1.55) saturate(1.15) drop-shadow(0 4px 12px rgba(0,0,0,.45));
 }
 .auth-page-split .theme-toggle-float{top:18px;right:18px;bottom:auto}
 

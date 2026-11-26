@@ -306,7 +306,7 @@ async function fazerCadastro() {
     const termos = el('termos');
 
     if (nome.split(' ').length < 2) return toast('Digite seu nome completo.');
-    if (!validarCPF(cpf)) return toast('CPF inválido!');
+    if (cpf && !validarCPF(cpf)) return toast('CPF inválido!');
     if (celular.replace(/\D/g, '').length < 10) return toast('Celular inválido!');
     if (!validarEmail(email)) return toast('E-mail inválido!');
     if (typeof SigiloPay !== 'undefined' && !SigiloPay.validarChavePix(pix).valida) return toast('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
@@ -1262,7 +1262,7 @@ async function adminCriarUsuario() {
   const senha = String(el('novoUsuarioSenha')?.value || '');
   if (nome.split(' ').length < 2) return toast('Digite o nome completo.');
   if (!validarEmail(email)) return toast('E-mail inválido.');
-  if (!validarCPF(cpf)) return toast('CPF inválido.');
+  if (cpf && !validarCPF(cpf)) return toast('CPF inválido.');
   if (celular.length < 10) return toast('Celular inválido.');
   if (senha.length < 8) return toast('Senha mínima de 8 caracteres.');
   if (!db) return toast('Firebase não conectado.');
