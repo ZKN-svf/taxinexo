@@ -547,7 +547,8 @@ button:disabled{cursor:wait;opacity:.6}
 /* ============================================================
    10. PLANOS
    ============================================================ */
-.planos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:18px}
+.planos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));gap:18px;scroll-margin-top:94px}
+#planos{scroll-margin-top:94px}
 .plano-card{
   position:relative;overflow:hidden;display:flex;flex-direction:column;
   padding:0 0 16px;border:1px solid rgba(125,180,255,.16);border-radius:20px;
@@ -1142,6 +1143,9 @@ button:disabled{cursor:wait;opacity:.6}
 .legal-alert-ico{flex:none;width:20px;height:20px;color:var(--gold);margin-top:2px}
 .legal-alert strong{display:block;color:#ffd98a;font-size:12px;margin-bottom:4px}
 .legal-alert p{margin:0;font-size:12.5px}
+.legal-alert-risk{border-color:rgba(251,113,133,.42);background:rgba(251,113,133,.08)}
+.legal-alert-risk strong{color:#ffb4c0}
+.legal-alert-risk .legal-alert-ico{color:#fb7185}
 .legal-footer{
   text-align:center;margin:22px 0 0;padding:26px 22px;
   border:1px solid var(--line);border-radius:20px;
@@ -1196,9 +1200,19 @@ button:disabled{cursor:wait;opacity:.6}
   .quick-actions .qa-ico{width:36px;height:36px;border-radius:10px}
   .quick-actions .qa-ico .ico{width:17px;height:17px}
   .quick-actions b.ico{display:none}
-  .planos-grid{grid-template-columns:1fr;gap:14px}
-  .plano-card{max-width:560px;justify-self:center;width:100%}
-  .plan-facts>div{min-height:88px}
+  .planos-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .plano-card{max-width:none;width:auto;justify-self:stretch;padding:0 0 12px;border-radius:16px}
+  .plano-card h4{font-size:9.5px;padding:10px 5px;letter-spacing:.02em}
+  .plano-selo{font-size:7px;padding:3px 6px;margin:8px auto 2px;max-width:94%}
+  .plan-car{max-height:94px}
+  .plan-facts{grid-template-columns:1fr;margin:10px 8px}
+  .plan-facts>div{min-height:0;padding:8px 9px;border-right:0!important;border-bottom:1px solid rgba(125,180,255,.1)!important}
+  .plan-facts>div:last-child{border-bottom:0!important}
+  .plan-icon{display:none}
+  .plan-facts dt{font-size:7.5px;padding-right:0}
+  .plan-facts dd{font-size:12px;margin-top:2px}
+  .plano-card button{width:calc(100% - 16px);margin:auto 8px 0;padding:10px 8px;font-size:8.5px;letter-spacing:.03em;gap:5px}
+  .plano-card button .ico{width:11px;height:11px}
   .dash-tabs{margin-bottom:16px}
   .dash-tab{padding:10px 8px;font-size:10.5px}
   .team-total{padding:14px;gap:12px}
@@ -1524,6 +1538,13 @@ button:disabled{cursor:wait;opacity:.6}
   .table-search-wrap{width:100%}
   .admin-top-chip{display:none}
   .admin-page .grp-whats{display:none}
+}
+@media(max-width:700px){
+  .dashboard .grp-whats{
+    width:52px;height:52px;padding:0;border-radius:50%;
+    justify-content:center;font-size:0;gap:0;
+  }
+  .dashboard .grp-whats .ico{width:22px;height:22px}
 }
 @media(max-width:420px){
   .admin-page .admin-stats{grid-template-columns:1fr}
