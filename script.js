@@ -867,19 +867,56 @@ async function carregarInvestimentos() {
   } catch (e) { console.error('[Investimentos]', e); }
 }
 
+// Tipos que aparecem no extrato do cliente. Códigos de pagamento/PIX ainda
+// pendentes, rendimentos, comissões, estornos e ajustes ficam de fora.
+const EXTRATO_TIPOS = {
+  deposito: { rotulo: 'Depósito', sinal: 1, exigeAprovado: true },
+  saque: { rotulo: 'Saque', sinal: -1 },
+  investimento: { rotulo: 'Plano comprado', sinal: -1 },
+  bonus: { rotulo: 'Bônus', sinal: 1 },
+};
+function extratoVisivel(t) {
+  const tipo = String((t && t.tipo) || '').toLowerCase();
+  const regra = EXTRATO_TIPOS[tipo];
+  if (!regra) return false;
+  // Depósito só entra depois de aprovado/pago. O PIX pendente continua
+  // salvo no D1 para o webhook creditar, mas não aparece como movimentação.
+  if (regra.exigeAprovado && statusTipo(t.status) !== 'ok') return false;
+  return true;
+}
+function extratoRotulo(t) {
+  const tipo = String((t && t.tipo) || '').toLowerCase();
+  const regra = EXTRATO_TIPOS[tipo];
+  if (!regra) return 'Transação';
+  if (tipo === 'investimento') {
+    const obs = String((t && t.observacao) || '');
+    const nome = obs.match(/plano\s+(.+)$/i);
+    if (nome && nome[1]) return `${regra.rotulo} · ${nome[1].trim()}`;
+  }
+  return regra.rotulo;
+}
 async function carregarExtrato() {
   const box = el('extratoLista'); if (!box || !db) return;
   const u = usuarioLocal();
   try {
     const keys = await chavesDaLista('transacoes_usuario/' + u.id);
     const itens = await lerCada('transacoes', keys);
-    const lista = itens.map(x => x.valor).sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || '')).slice(0, 30);
+    const lista = itens
+      .map(x => x.valor)
+      .filter(extratoVisivel)
+      .sort((a, b) => (b.criado_em || '').localeCompare(a.criado_em || ''))
+      .slice(0, 30);
     if (!lista.length) { box.innerHTML = '<p class="empty-state">Nenhuma movimentação ainda.</p>'; return; }
-    box.innerHTML = lista.map(t => `
+    box.innerHTML = lista.map(t => {
+      const regra = EXTRATO_TIPOS[String(t.tipo || '').toLowerCase()];
+      const sinal = regra && regra.sinal < 0 ? '-' : '+';
+      const classe = regra && regra.sinal < 0 ? 'negativo' : 'positivo';
+      return `
       <div class="movimento">
-        <div><strong>${t.tipo || 'Transação'}</strong><small>${fmtData(t.criado_em)}</small></div>
-        <span class="${['rendimento', 'bonus', 'indicacao', 'retorno', 'deposito'].includes(t.tipo) ? 'positivo' : 'negativo'}">${['saque', 'investimento'].includes(t.tipo) ? '-' : '+'} ${fmtBRL(t.valor)}</span>
-      </div>`).join('');
+        <div><strong>${escTexto(extratoRotulo(t))}</strong><small>${fmtData(t.criado_em)}</small></div>
+        <span class="${classe}">${sinal} ${fmtBRL(t.valor)}</span>
+      </div>`;
+    }).join('');
   } catch (e) { console.error('[Extrato]', e); }
 }
 function mostrarExtrato() {
