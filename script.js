@@ -1366,11 +1366,117 @@ function renderAdminUsuarios() {
       <td>${escTexto(u.email || '-')}<small>CPF ${escTexto(u.cpf || '-')}</small></td>
       <td><strong class="td-money">${fmtBRL(u.saldo)}</strong></td>
       <td>${fmtBRL(u.total_depositado)}</td>
-      <td><span class="mini-pill">${indicados}</span></td>
+      <td><span class="mini-pill">${indicados}</span>${indicados > 0 ? ` <button class="mini-btn" type="button" onclick="adminAbrirConvidados('${escTexto(u.id)}', false)">Ver</button>` : ''}</td>
       <td class="td-muted">${u.criado_em ? fmtData(u.criado_em) : '-'}</td>
       <td class="td-acoes"><button class="mini-btn danger" type="button" onclick="adminExcluirUsuario('${escTexto(u.id)}')">Excluir</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';
+}
+
+// ------------------------------------------------------------
+// ADMIN — REDE DE INDICAÇÕES DO USUÁRIO
+// ------------------------------------------------------------
+let adminConvidadosAtual = null;
+let adminConvidadosPilha = [];
+
+function adminFilhosDe(uid) {
+  return Object.entries(ADMIN_CACHE.usuarios || {})
+    .map(([id, u]) => ({ id, ...(u || {}) }))
+    .filter(u => String(u.indicado_por || '') === String(uid))
+    .sort((a, b) => String(b.criado_em || '').localeCompare(String(a.criado_em || '')));
+}
+
+function adminUsuarioPlanoPago(u) {
+  if (!u || typeof u !== 'object') return false;
+  if (Number(u.investido) > 0) return true;
+  const planos = u.planos_comprados || {};
+  for (const [id, qtd] of Object.entries(planos)) {
+    if (Number(id) > 0 && Number(qtd) > 0) return true;
+  }
+  const compras = u.compras || {};
+  for (const c of Object.values(compras)) {
+    if (c && Number(c.planoId) > 0) return true;
+  }
+  return false;
+}
+
+function adminContarRede(uid, vistos = new Set()) {
+  if (vistos.has(String(uid))) return 0;
+  vistos.add(String(uid));
+  let total = 0;
+  for (const filho of adminFilhosDe(uid)) {
+    total += 1 + adminContarRede(filho.id, vistos);
+  }
+  return total;
+}
+
+function adminRenderConvidados(uid) {
+  const user = ADMIN_CACHE.usuarios?.[uid];
+  const lista = el('adminConvidadosLista');
+  const resumo = el('adminConvidadosResumo');
+  const titulo = el('adminConvidadosTitulo');
+  const voltar = el('adminConvidadosVoltar');
+  if (!lista || !resumo || !titulo) return;
+  if (!user) {
+    titulo.textContent = 'Usuário não encontrado';
+    resumo.innerHTML = '';
+    lista.innerHTML = '<p class="admin-rede-empty">Recarregue o painel e tente novamente.</p>';
+    return;
+  }
+  const filhos = adminFilhosDe(uid);
+  const pagos = filhos.filter(adminUsuarioPlanoPago).length;
+  const pendentes = filhos.length - pagos;
+  const rede = adminContarRede(uid);
+  titulo.textContent = 'Convidados de ' + (user.nome || 'usuário');
+  const plural = (n, um, muitos) => Number(n) === 1 ? um : muitos;
+  resumo.innerHTML = `
+    <span><b>${filhos.length}</b> ${plural(filhos.length, 'direto', 'diretos')}</span>
+    <span><b>${pagos}</b> ${plural(pagos, 'pago', 'pagos')}</span>
+    <span><b>${pendentes}</b> ${plural(pendentes, 'pendente', 'pendentes')}</span>
+    <span><b>${rede}</b> na rede</span>
+  `;
+  if (voltar) voltar.style.display = adminConvidadosPilha.length ? 'inline-flex' : 'none';
+  if (!filhos.length) {
+    lista.innerHTML = '<p class="admin-rede-empty">Este usuário ainda não convidou ninguém.</p>';
+    return;
+  }
+  lista.innerHTML = filhos.map(f => {
+    const inicial = String(f.nome || '?').trim()[0]?.toUpperCase() || '?';
+    const pago = adminUsuarioPlanoPago(f);
+    const netos = adminFilhosDe(f.id).length;
+    return `<div class="admin-rede-item">
+      <div class="admin-rede-avatar">${escTexto(inicial)}</div>
+      <div class="admin-rede-info">
+        <strong>${escTexto(f.nome || 'Usuário')}</strong>
+        <small>${escTexto(f.email || '-')}${f.criado_em ? ' · ' + fmtData(f.criado_em) : ''}</small>
+      </div>
+      <span class="admin-rede-status ${pago ? 'pago' : 'pendente'}">${pago ? 'PAGO' : 'PENDENTE'}</span>
+      ${netos > 0 ? `<button class="mini-btn" type="button" onclick="adminAbrirConvidados('${escTexto(f.id)}', true)">Ver ${netos}</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function adminAbrirConvidados(uid, fromChild) {
+  if (!fromChild) adminConvidadosPilha = [];
+  else if (adminConvidadosAtual && adminConvidadosAtual !== uid) adminConvidadosPilha.push(adminConvidadosAtual);
+  adminConvidadosAtual = uid;
+  adminRenderConvidados(uid);
+  const dlg = el('adminConvidadosDialog');
+  if (dlg && !dlg.open) dlg.showModal();
+}
+
+function fecharConvidadosAdmin() {
+  const dlg = el('adminConvidadosDialog');
+  if (dlg && dlg.open) dlg.close();
+  adminConvidadosAtual = null;
+  adminConvidadosPilha = [];
+}
+
+function voltarConvidadosAdmin() {
+  const anterior = adminConvidadosPilha.pop();
+  if (!anterior) return;
+  adminConvidadosAtual = anterior;
+  adminRenderConvidados(anterior);
 }
 
 function renderAdminInvestimentos() {

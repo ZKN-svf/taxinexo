@@ -538,3 +538,57 @@ html[data-tema="escuro"] .admin-plano-status.off{color:#ffb4c0;background:rgba(2
   .admin-page .admin-stats{grid-template-columns:1fr}
   .admin-page .admin-plano-grid{grid-template-columns:1fr}
 }
+
+/* Rede de indicações no admin */
+.admin-rede-dialog{
+  width:min(94vw,620px);max-height:88vh;overflow:auto;
+  padding:22px;border:1px solid var(--line);border-radius:20px;
+  background:var(--surface);color:var(--text);
+  box-shadow:0 40px 90px -40px rgba(0,0,0,.65);
+}
+.admin-rede-dialog::backdrop{background:rgba(4,10,20,.62);backdrop-filter:blur(4px)}
+.admin-rede-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.admin-rede-kicker{display:block;font-size:9px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--accent-dark)}
+.admin-rede-top h2{margin:4px 0 0;font-family:var(--display);font-size:20px;line-height:1.15;color:var(--text)}
+.admin-rede-close{
+  flex:none;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:transparent;color:var(--muted);font-size:22px;line-height:1;cursor:pointer;
+}
+.admin-rede-close:hover{color:var(--accent);border-color:rgba(var(--accent-rgb),.35)}
+.admin-rede-resumo{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}
+.admin-rede-resumo span{
+  padding:5px 9px;border-radius:999px;border:1px solid var(--line);
+  font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);
+}
+.admin-rede-resumo b{color:var(--accent-dark);font-family:var(--display);font-size:12px}
+.admin-rede-list{display:grid;gap:8px;max-height:50vh;overflow:auto;padding-right:3px}
+.admin-rede-item{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:9px 10px;border:1px solid var(--line);border-radius:12px;
+  background:rgba(var(--accent-rgb),.035);
+}
+.admin-rede-avatar{
+  width:32px;height:32px;flex:none;display:grid;place-items:center;border-radius:50%;
+  background:var(--grad);color:#fff;font-family:var(--display);font-size:12px;font-weight:800;
+}
+.admin-rede-info{flex:1;min-width:0}
+.admin-rede-info strong{display:block;font-size:12px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-rede-info small{display:block;margin-top:2px;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-rede-status{
+  flex:none;padding:3px 8px;border-radius:999px;font-size:8px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent;
+}
+.admin-rede-status.pago{color:#15803d;background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.28)}
+.admin-rede-status.pendente{color:var(--accent-dark);background:rgba(var(--accent-rgb),.09);border-color:rgba(var(--accent-rgb),.28)}
+html[data-tema="escuro"] .admin-rede-status.pago{color:#4dffc3;background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3)}
+html[data-tema="escuro"] .admin-rede-status.pendente{color:#ffd27a;background:rgba(246,198,103,.13);border-color:rgba(246,198,103,.32)}
+.admin-rede-empty{margin:8px 0;padding:14px;border:1px dashed var(--line);border-radius:12px;text-align:center;font-size:11px;color:var(--muted)}
+.admin-rede-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+.admin-rede-actions .btn{min-height:38px}
+@media(max-width:700px){
+  .admin-rede-dialog{width:94vw;padding:16px;border-radius:16px}
+  .admin-rede-top h2{font-size:18px}
+  .admin-rede-list{max-height:48vh}
+  .admin-rede-item .mini-btn{width:100%}
+  .admin-rede-actions{position:sticky;bottom:0;background:var(--surface);padding-top:8px}
+}

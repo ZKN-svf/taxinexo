@@ -290,7 +290,7 @@
             <div class="admin-block-head">
               <div>
                 <h2>Usuários</h2>
-                <p>Criar contas, ajustar saldo e gerenciar clientes.</p>
+                <p>Criar contas, ajustar saldo e gerenciar clientes. Na coluna Indicados, clique em “Ver” para abrir quem cada usuário convidou.</p>
               </div>
             </div>
 
@@ -678,6 +678,22 @@
       </div>
     </div>
   </main>
+
+  <dialog class="admin-rede-dialog" id="adminConvidadosDialog" aria-labelledby="adminConvidadosTitulo">
+    <div class="admin-rede-top">
+      <div>
+        <span class="admin-rede-kicker">Rede de indicações</span>
+        <h2 id="adminConvidadosTitulo">Convidados</h2>
+      </div>
+      <button type="button" class="admin-rede-close" onclick="fecharConvidadosAdmin()" aria-label="Fechar">×</button>
+    </div>
+    <div class="admin-rede-resumo" id="adminConvidadosResumo"></div>
+    <div class="admin-rede-list" id="adminConvidadosLista"></div>
+    <div class="admin-rede-actions">
+      <button type="button" class="btn secondary" id="adminConvidadosVoltar" onclick="voltarConvidadosAdmin()">← Voltar</button>
+      <button type="button" class="btn" onclick="fecharConvidadosAdmin()">Fechar</button>
+    </div>
+  </dialog>
 
   <!-- ============================================================
        FOOTER
