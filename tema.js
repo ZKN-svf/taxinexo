@@ -3,7 +3,7 @@
    - Alterna claro/escuro (style-laranja.css ligado/desligado)
    - Aplica nome da plataforma em TODAS as referências textuais
    - Aplica a cor principal escolhida no admin
-   Configuração pública: /taxinexo/config/marca no Firebase
+   Configuração pública: /db/config/marca no Worker
    ============================================================ */
 (function () {
   'use strict';
@@ -12,7 +12,7 @@
   var CHAVE_MARCA = 'taxinexo_marca';
   var NOME_PADRAO = 'Veloster Capital';
   var COR_PADRAO = '#d97706';
-  var CONFIG_URL = 'https://zkn-ss-default-rtdb.firebaseio.com/taxinexo/config/marca.json';
+  var CONFIG_URL = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/db/config/marca';
 
   var marcaAtual = { nome: NOME_PADRAO, cor: COR_PADRAO };
 
@@ -310,7 +310,8 @@
     fetch(CONFIG_URL + '?t=' + Date.now(), { cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (m) {
-        if (m && typeof m === 'object') aplicarMarca(m);
+        var cfg = m && m.ok && m.data ? m.data : m;
+        if (cfg && typeof cfg === 'object') aplicarMarca(cfg);
       })
       .catch(function () {});
   }

@@ -1,45 +1,92 @@
 ﻿/* ============================================================
-   TAXINEXO — SCRIPT PRINCIPAL
-   Firebase Realtime DB (/taxinexo) + SigiloPay + Admin + Dashboard
-   Funcionamento portado do InvestMax, mantendo o visual Taxinexo.
+   VELOSTER CAPITAL — SCRIPT PRINCIPAL
+   Cloudflare Worker + D1 + SigiloPay + Admin + Dashboard
    ============================================================ */
 
 // ------------------------------------------------------------
-// FIREBASE (mesmo projeto do InvestMax; namespace isolado /taxinexo)
+// BACKEND (Cloudflare Worker + D1)
 // ------------------------------------------------------------
-const firebaseConfig = {
-  apiKey: 'AIzaSyCPvJgu35opSVzsqF5PHsgDoNOurNtHOY4',
-  authDomain: 'zkn-ss.firebaseapp.com',
-  databaseURL: 'https://zkn-ss-default-rtdb.firebaseio.com',
-  projectId: 'zkn-ss',
-  storageBucket: 'zkn-ss.appspot.com',
-  messagingSenderId: '100000000000',
-  appId: '1:100000000000:web:abcdef123456'
-};
+const WORKER_BASE = 'https://taxinexo-webhook.gabrielrobin63.workers.dev';
+const TAX_API = WORKER_BASE + '/api';
+const DB_API = WORKER_BASE + '/db';
 
-let db = null; // raiz /taxinexo
-if (typeof firebase !== 'undefined') {
-  try {
-    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
-    db = firebase.database().ref('taxinexo');
-    console.log('[Taxinexo] Firebase conectado:', firebaseConfig.databaseURL, '/taxinexo');
-  } catch (e) {
-    console.error('[Taxinexo] Erro Firebase:', e);
+function adminToken() {
+  try { return sessionStorage.getItem('admin_token') || ''; } catch (_) { return ''; }
+}
+function sessionToken() {
+  if (/\/admin(\.html)?\/?$/i.test(location.pathname)) {
+    const a = adminToken();
+    if (a) return a;
+  }
+  try { return localStorage.getItem('token_taxinexo') || ''; } catch (_) { return ''; }
+}
+
+class StoreSnapshot {
+  constructor(valor) { this._valor = valor; }
+  val() { return this._valor; }
+  exists() { return this._valor !== null && this._valor !== undefined; }
+}
+
+class StoreRef {
+  constructor(caminho = '') {
+    this.path = String(caminho || '').replace(/^\/+|\/+$/g, '');
+  }
+  child(caminho) {
+    const p = String(caminho || '').replace(/^\/+|\/+$/g, '');
+    return new StoreRef(this.path ? this.path + '/' + p : p);
+  }
+  _url() {
+    const seguro = this.path.split('/').filter(Boolean).map(encodeURIComponent).join('/');
+    return DB_API + (seguro ? '/' + seguro : '');
+  }
+  async _req(method, body) {
+    const headers = {};
+    const token = sessionToken();
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (body !== undefined) headers['Content-Type'] = 'application/json';
+    const r = await fetch(this._url(), {
+      method, headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      cache: 'no-store',
+    });
+    let j = {};
+    try { j = await r.json(); } catch (_) {}
+    if (!r.ok || j.ok === false) {
+      const erro = new Error(j.message || ('Erro ' + r.status));
+      erro.status = r.status;
+      throw erro;
+    }
+    return j;
+  }
+  async once() { return new StoreSnapshot((await this._req('GET')).data ?? null); }
+  async set(valor) { await this._req('PUT', valor); return this; }
+  async update(valor) { await this._req('PATCH', valor); return this; }
+  async remove() { await this._req('DELETE'); return this; }
+  async push(valor) { const j = await this._req('POST', valor); return { key: j.name }; }
+  async increment(delta) {
+    const r = await fetch(WORKER_BASE + '/api/admin/increment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken() },
+      body: JSON.stringify({ path: this.path, delta: Number(delta) || 0 }),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok || !j.ok) throw new Error(j.message || 'Erro ao incrementar.');
+    return j;
+  }
+  async transaction(fn) {
+    const atual = (await this.once()).val();
+    const proximo = fn(atual);
+    await this.set(proximo);
+    return { committed: true, snapshot: new StoreSnapshot(proximo) };
   }
 }
+
+const db = new StoreRef('');
+console.log('[Veloster] Banco via Worker:', DB_API);
 
 // ------------------------------------------------------------
 // CONFIGURAÇÕES
 // ------------------------------------------------------------
-// Senha e token do admin ficam no Firebase (/config/admin), nunca no frontend.
-let ADMIN_CONFIG = { senha: '', token: '' };
-async function carregarConfigAdmin() {
-  try {
-    const r = await fetch('https://zkn-ss-default-rtdb.firebaseio.com/taxinexo/config/admin.json');
-    const j = await r.json();
-    if (j && typeof j === 'object') ADMIN_CONFIG = { senha: String(j.senha || ''), token: String(j.token || '') };
-  } catch (_) {}
-}
 const CONFIG = {
   depositoMinimo: 20,
   depositoMaximo: 500,
@@ -85,7 +132,7 @@ const valorTempo = (v) => {
   return isFinite(d) ? d : 0;
 };
 
-// Índices manuais: evitam orderByChild (que exige .indexOn nas regras do Firebase).
+// Índices manuais para consultas por e-mail/código no D1.
 const emailKey = (email) => btoa(String(email).toLowerCase()).replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
 async function buscarUsuarioPorEmail(email) {
   const idx = await db.child('email_index/' + emailKey(email)).once('value');
@@ -107,22 +154,6 @@ async function lerCada(caminho, keys) {
   return out;
 }
 
-function gerarId() { return 'u_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10); }
-function gerarCodigoIndicacao() {
-  const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let s = '';
-  for (let i = 0; i < 8; i++) s += c[Math.floor(Math.random() * c.length)];
-  return s;
-}
-function hashSenha(senha) {
-  let hash = 0;
-  for (let i = 0; i < senha.length; i++) {
-    const ch = senha.charCodeAt(i);
-    hash = ((hash << 5) - hash) + ch;
-    hash = hash & hash;
-  }
-  return 'h_' + Math.abs(hash).toString(36) + '_' + btoa(senha).slice(0, 8);
-}
 function validarCPF(cpf) {
   cpf = String(cpf).replace(/\D/g, '');
   if (cpf.length !== 11 || /^(\d)\1{10}$/.test(cpf)) return false;
@@ -260,6 +291,7 @@ function sair() {
   localStorage.removeItem('usuario_taxinexo');
   localStorage.removeItem('token_taxinexo');
   sessionStorage.removeItem('admin_taxinexo');
+  sessionStorage.removeItem('admin_token');
   location.href = 'index.html';
 }
 function exigirLogin() {
@@ -270,8 +302,6 @@ function exigirLogin() {
   }
   return u;
 }
-
-const TAX_API = 'https://taxinexo-webhook.gabrielrobin63.workers.dev/api';
 
 // Preserva o código de indicação de QUALQUER página (ex.: alguém abre
 // cliente.html?ref=CODIGO e é redirecionado para login/cadastro).
@@ -335,10 +365,9 @@ async function fazerCadastro() {
     if (!/\d/.test(senha)) return toast('A senha precisa ter número.');
     if (senha !== senha2) return toast('As senhas não coincidem!');
     if (termos && !termos.checked) return toast('Aceite os termos.');
-    if (!db) return toast('Firebase não conectado.');
+    if (!db) return toast('Banco não conectado.');
 
-    if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
-
+    // O Worker valida e-mail duplicado de forma autoritativa.
     const turnstileToken = tokenTurnstile('register');
     if (!turnstileToken) return toast('Aguarde a verificação de segurança.');
 
@@ -347,7 +376,7 @@ async function fazerCadastro() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         nome, email, cpf: cpf.replace(/\D/g, ''), celular: celular.replace(/\D/g, ''),
-        pix, senha_hash: hashSenha(senha), indicacao, turnstileToken,
+        pix, senha, indicacao, turnstileToken,
       }),
     });
     const cr = await resp.json().catch(() => ({}));
@@ -360,7 +389,7 @@ async function fazerCadastro() {
     };
 
     salvarUsuarioLocal(usuario);
-    localStorage.setItem('token_taxinexo', 'token_' + Date.now());
+    localStorage.setItem('token_taxinexo', cr.session || '');
     limparRefIndicacao();
     toast(`Conta criada, ${nome.split(' ')[0]}!\n\nSeu código de indicação: ${usuario.codigo_indicacao}\nComissões em 5 níveis: 10%, 5%, 3%, 2% e 1% por amigo que ativar um plano pago!`);
     location.href = 'cliente.html';
@@ -384,13 +413,13 @@ async function fazerLogin() {
 
     const resp = await fetch(TAX_API + '/login', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha_hash: hashSenha(senha), turnstileToken, ref: refIndicacao() }),
+      body: JSON.stringify({ email, senha, turnstileToken, ref: refIndicacao() }),
     });
     const r = await resp.json().catch(() => ({}));
     if (!resp.ok || !r.ok) return toast(r.message || 'Não foi possível entrar.');
 
     salvarUsuarioLocal(r.user);
-    localStorage.setItem('token_taxinexo', 'token_' + Date.now());
+    localStorage.setItem('token_taxinexo', r.session || '');
     location.href = 'cliente.html';
   } catch (e) {
     console.error(e);
@@ -412,7 +441,7 @@ async function entrarComGoogle(response) {
     const r = await resp.json().catch(() => ({}));
     if (!resp.ok || !r.ok) return toast(r.message || 'Erro no login com Google.');
     salvarUsuarioLocal(r.user);
-    localStorage.setItem('token_taxinexo', 'google_' + Date.now());
+    localStorage.setItem('token_taxinexo', r.session || '');
     limparRefIndicacao();
     toast('Bem-vindo!');
     setTimeout(() => { location.href = 'cliente.html'; }, 600);
@@ -431,7 +460,10 @@ async function iniciarDashboard() {
   try {
     const snap = await db.child('usuarios/' + u.id).once('value');
     if (snap.exists()) salvarUsuarioLocal(snap.val());
-  } catch (e) { console.warn('[Dashboard] sync:', e); }
+  } catch (e) {
+    if (e.status === 401 || e.status === 403) { sair(); return; }
+    console.warn('[Dashboard] sync:', e);
+  }
 
   const atual = usuarioLocal();
   const primeiro = atual.nome.split(' ')[0];
@@ -520,7 +552,10 @@ async function carregarEquipe() {
   try {
     // Backend é a fonte da verdade para status de indicação.
     // no-store evita exibir uma lista antiga em cache depois de um novo cadastro.
-    const resposta = await (await fetch(TAX_API + '/indicados?uid=' + encodeURIComponent(u.id), { cache: 'no-store' })).json().catch(() => ({}));
+    const resposta = await (await fetch(TAX_API + '/indicados?uid=' + encodeURIComponent(u.id), {
+      cache: 'no-store',
+      headers: { Authorization: 'Bearer ' + sessionToken() },
+    })).json().catch(() => ({}));
     let indicados = resposta.ok && Array.isArray(resposta.indicados) ? resposta.indicados.slice() : [];
     const vistos = new Set(indicados.map(x => x.id));
 
@@ -600,27 +635,21 @@ document.addEventListener('visibilitychange', () => {
 
 async function resgatarMeta(qtd, premio) {
   const u = usuarioLocal();
-  if (!u || !db) return;
+  if (!u) return;
   if (!confirm(`Resgatar o prêmio de ${fmtBRL(premio)} por ${qtd} indicados?`)) return;
   try {
-    const ja = await db.child('metas_resgatadas/' + u.id + '/' + qtd).once('value');
-    if (ja.exists()) return toast('Esta meta já foi resgatada.');
-    const snap = await db.child('usuarios/' + u.id).once('value');
-    const atual = snap.exists() ? snap.val() : u;
-    await db.child('usuarios/' + u.id + '/saldo_indicacao').set((Number(atual.saldo_indicacao) || 0) + premio);
-    await db.child('usuarios/' + u.id + '/bonus').set((Number(atual.bonus) || 0) + premio);
-    const tx = await db.child('transacoes').push({
-      usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-      tipo: 'indicacao', valor: premio, status: 'aprovada',
-      observacao: `Resgate de meta — ${qtd} indicados`, criado_em: new Date().toISOString()
+    const resp = await fetch(TAX_API + '/metas/resgatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
+      body: JSON.stringify({ qtd }),
     });
-    await db.child('transacoes_usuario/' + u.id + '/' + tx.key).set(true);
-    await db.child('metas_resgatadas/' + u.id + '/' + qtd).set({ valor: premio, resgatado_em: new Date().toISOString() });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) return toast(r.message || 'Erro ao resgatar.');
     const local = usuarioLocal();
-    local.saldo_indicacao = (Number(atual.saldo_indicacao) || 0) + premio;
-    local.bonus = (Number(atual.bonus) || 0) + premio;
+    local.saldo_indicacao = Number(r.saldo_indicacao) || 0;
+    local.bonus = (Number(local.bonus) || 0) + Number(r.premio || premio);
     salvarUsuarioLocal(local);
-    toast(`${fmtBRL(premio)} creditados no saldo de indicação!`);
+    toast(`${fmtBRL(r.premio || premio)} creditados no saldo de indicação!`);
     await carregarEquipe();
   } catch (e) {
     toast('Erro ao resgatar: ' + e.message);
@@ -865,19 +894,7 @@ async function gerarPix() {
     if (el('pixCopiaCola')) el('pixCopiaCola').value = r.qr_code_copia_cola || '';
     if (el('pixValor')) el('pixValor').textContent = fmtBRL(valor);
 
-    if (db) {
-      // O Worker já registra o depósito; só cria aqui se ele não registrou.
-      const ja = await db.child('identifier_index/' + r.identifier).once('value');
-      if (!ja.exists()) {
-        const txDep = await db.child('transacoes').push({
-          usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-          tipo: 'deposito', valor, status: 'pendente',
-          identifier: r.identifier, criado_em: new Date().toISOString()
-        });
-        await db.child('transacoes_usuario/' + u.id + '/' + txDep.key).set(true);
-        await db.child('identifier_index/' + r.identifier).set(txDep.key);
-      }
-    }
+    // O Worker registra o depósito e o índice de forma autoritativa.
     setMensagem('depositoMsg', 'PIX gerado! Escaneie ou copie o código.', 'success');
     iniciarVerificacao(r.identifier, valor, u);
   } catch (e) {
@@ -901,16 +918,15 @@ function iniciarVerificacao(identifier, valor, usuario) {
       return;
     }
     try {
-      if (!db) return;
       // O Webhook é a fonte autoritativa e quem credita o saldo.
-      // Aqui apenas acompanhamos o status da transação no Firebase
-      // (o polling da SigiloPay é bloqueado com 429 — não usar mais).
-      const idx = await db.child('identifier_index/' + identifier).once('value');
-      const tk = idx.val();
-      if (!tk) return;
-      const st = await db.child('transacoes/' + tk + '/status').once('value');
-      if (pixCancelado) return;
-      if (String(st.val() || '').toLowerCase() === 'aprovada') {
+      // O status é consultado pelo Worker, que valida o dono do depósito.
+      const resp = await fetch(TAX_API + '/deposito/status?identifier=' + encodeURIComponent(identifier), {
+        cache: 'no-store',
+        headers: { Authorization: 'Bearer ' + sessionToken() },
+      });
+      const r = await resp.json().catch(() => ({}));
+      if (pixCancelado || !r.ok) return;
+      if (r.aprovada) {
         clearInterval(pixInterval); pixInterval = null;
         const snap = await db.child('usuarios/' + usuario.id).once('value');
         if (snap.exists()) salvarUsuarioLocal(snap.val());
@@ -951,7 +967,8 @@ async function confirmarInvestimento() {
     // Identificador único desta intenção de compra (idempotªncia)
     const txId = 'C' + Date.now() + '_' + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 12) : Math.random().toString(36).slice(2, 14));
     const resp = await fetch(TAX_API + '/comprar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
       body: JSON.stringify({ uid: u.id, txId, planoId }),
     });
     const r = await resp.json().catch(() => ({}));
@@ -1010,45 +1027,25 @@ async function confirmarSaque(ev) {
   if ((Number(u.saldo) || 0) < valor) return avisoSaque(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
   // Só permite saque para quem já fez um depósito real.
   if ((Number(u.total_depositado) || 0) <= 0) return avisoSaque('Você precisa fazer um depósito antes de solicitar um saque.');
-  if (!db) return avisoSaque('Firebase não conectado.');
+  if (!db) return avisoSaque('Banco não conectado.');
 
   const c = calcularSaque(valor);
-  if (typeof SigiloPay !== 'undefined' && SigiloPay.consultarSaldo) {
-    const s = await SigiloPay.consultarSaldo();
-    if (s.sucesso && s.available < c.liquido) return avisoSaque('Saque temporariamente indisponível: saldo em processamento.');
-  }
-
   if (!confirm(`Confirmar saque?\n\nValor bruto: ${fmtBRL(c.bruto)}\nTaxa (${CONFIG.taxaSaquePorcento}%): ${fmtBRL(c.taxa)}\nVocê recebe: ${fmtBRL(c.liquido)}`)) return;
 
   const btn = ev && ev.target && ev.target.querySelector ? ev.target.querySelector('button[type="submit"]') : null;
   const original = btn ? btn.innerHTML : '';
   if (btn) { btn.disabled = true; btn.innerHTML = 'Processando...'; }
   try {
-    const r = await SigiloPay.criarTransferencia(c.liquido, pix, { nome: u.nome, cpf: u.cpf }, u.id);
-    if (!r.sucesso) return setMensagem('saqueMsg', 'Erro no saque: ' + r.mensagem, 'error');
-
-    const snap = await db.child('usuarios/' + u.id).once('value');
-    if (snap.exists()) {
-      const key = u.id;
-      const novoSaldo = (Number(u.saldo) || 0) - valor;
-      await db.child('usuarios/' + key + '/saldo').set(novoSaldo);
-      const saqueRef = await db.child('saques').push({
-        usuario_id: u.id, usuario_nome: u.nome, usuario_email: u.email,
-        valor_bruto: c.bruto, taxa: c.taxa, valor_liquido: c.liquido,
-        chave_pix: pix, status: 'processando', withdraw_id: r.withdraw_id,
-        receipt_url: r.receipt_url, criado_em: new Date().toISOString()
-      });
-      await db.child('saques_usuario/' + u.id + '/' + saqueRef.key).set(true);
-      const txSaq = await db.child('transacoes').push({
-        usuario_id: u.id, usuario_email: u.email, usuario_nome: u.nome,
-        tipo: 'saque', valor: c.liquido, status: 'aprovada',
-        observacao: `Saque de ${fmtBRL(c.bruto)} — taxa ${fmtBRL(c.taxa)}`, criado_em: new Date().toISOString()
-      });
-      await db.child('transacoes_usuario/' + u.id + '/' + txSaq.key).set(true);
-      db.child('plataforma/taxas_recebidas').transaction(v => (v || 0) + c.taxa);
-      u.saldo = novoSaldo; salvarUsuarioLocal(u);
+    const resp = await fetch(TAX_API + '/saque', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
+      body: JSON.stringify({ valor, pix }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) {
+      return setMensagem('saqueMsg', r.message || 'Erro ao solicitar saque.', 'error');
     }
-    avisoSaque(`Saque enviado! Você recebe ${fmtBRL(c.liquido)}.`, 'success');
+    avisoSaque(`Saque enviado! Você recebe ${fmtBRL(r.valor_liquido)}.`, 'success');
     const d = el('saqueDialog');
     setTimeout(() => { if (d) d.close(); location.reload(); }, 2000);
   } catch (e) {
@@ -1063,17 +1060,27 @@ async function confirmarSaque(ev) {
 // ADMIN
 // ------------------------------------------------------------
 async function entrarAdmin() {
-  if (!ADMIN_CONFIG.senha) await carregarConfigAdmin();
   const senha = String(el('adminSenha')?.value || '');
-  if (!ADMIN_CONFIG.senha) return setMensagem('adminMsg', 'Configuração indisponível. Recarregue a página.', 'error');
-  if (senha !== ADMIN_CONFIG.senha) return setMensagem('adminMsg', 'Senha incorreta.', 'error');
-  sessionStorage.setItem('admin_taxinexo', 'sim');
-  setMensagem('adminMsg', 'Acesso liberado.', 'success');
-  carregarAdmin();
+  if (!senha) return setMensagem('adminMsg', 'Digite a senha.', 'error');
+  try {
+    const resp = await fetch(TAX_API + '/admin/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: senha }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok || !r.token) return setMensagem('adminMsg', 'Senha incorreta.', 'error');
+    sessionStorage.setItem('admin_token', r.token);
+    sessionStorage.setItem('admin_taxinexo', 'sim');
+    setMensagem('adminMsg', 'Acesso liberado.', 'success');
+    carregarAdmin();
+    adminCarregarGateway();
+    adminCarregarBanners();
+  } catch (e) {
+    setMensagem('adminMsg', 'Erro ao entrar: ' + e.message, 'error');
+  }
 }
 async function carregarAdmin() {
-  if (sessionStorage.getItem('admin_taxinexo') !== 'sim') return;
-  if (!db) return toast('Firebase não conectado.');
+  if (!adminToken()) return;
   try {
     const [us, inv, saq, tx, ctrl] = await Promise.all([
       db.child('usuarios').once('value'),
@@ -1240,7 +1247,7 @@ function renderSaqueStatus(estado) {
 }
 
 async function definirBloqueioSaques(bloquear) {
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Banco não conectado.');
   const motivo = String(el('adminMotivoBloqueio')?.value || '').trim();
   const mensagem = bloquear ? (motivo || 'Saques temporariamente bloqueados.') : '';
   if (bloquear && !confirm('Bloquear os saques de todos os clientes agora?')) return;
@@ -1284,7 +1291,7 @@ function renderAdminUsuarios() {
   if (el('adminUsuariosCount')) el('adminUsuariosCount').textContent = lista.length;
   tbody.innerHTML = lista.length ? lista.slice(0, 300).map(u => {
     const indicados = ADMIN_CACHE.indicados?.[u.id] || 0;
-    const google = String(u.senha_hash || '') === 'GOOGLE_ONLY_NO_PASSWORD';
+    const google = !!u.google || String(u.senha_hash || '') === 'GOOGLE_ONLY_NO_PASSWORD';
     const contato = u.celular || '';
     return `<tr>
       <td><strong>${escTexto(u.nome || '-')}</strong><small>${google ? '<span class="badge-google">Google</span>' : ''}${escTexto(contato)}</small></td>
@@ -1341,22 +1348,20 @@ async function adminCriarUsuario() {
   if (cpf && !validarCPF(cpf)) return toast('CPF inválido.');
   if (celular.length < 10) return toast('Celular inválido.');
   if (senha.length < 8) return toast('Senha mínima de 8 caracteres.');
-  if (!db) return toast('Firebase não conectado.');
-  if (await buscarUsuarioPorEmail(email)) return toast('E-mail já cadastrado.');
-  const id = gerarId();
-  const usuario = {
-    id, nome, email, cpf, celular, pix: celular,
-    senha_hash: hashSenha(senha),
-    saldo: 0, saldo_indicacao: 0, investido: 0, rendimentos: 0, bonus: 0, total_depositado: 0,
-    codigo_indicacao: gerarCodigoIndicacao(), indicado_por: null, bonus_recebido: false,
-    criado_em: new Date().toISOString(), role: 'user'
-  };
-  await db.child('usuarios/' + id).set(usuario);
-  await db.child('email_index/' + emailKey(email)).set(id);
-  await db.child('codigo_index/' + usuario.codigo_indicacao).set(id);
-  ['novoUsuarioNome','novoUsuarioEmail','novoUsuarioCpf','novoUsuarioCelular','novoUsuarioSenha'].forEach(i => { if (el(i)) el(i).value = ''; });
-  toast(`Usuário ${nome.split(' ')[0]} criado!`);
-  carregarAdmin();
+  try {
+    const resp = await fetch(TAX_API + '/admin/criar-usuario', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken() },
+      body: JSON.stringify({ nome, email, cpf, celular, pix: celular, senha }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) return toast(r.message || 'Erro ao criar usuário.');
+    ['novoUsuarioNome','novoUsuarioEmail','novoUsuarioCpf','novoUsuarioCelular','novoUsuarioSenha'].forEach(i => { if (el(i)) el(i).value = ''; });
+    toast(`Usuário ${nome.split(' ')[0]} criado!`);
+    carregarAdmin();
+  } catch (e) {
+    toast('Erro ao criar usuário: ' + e.message);
+  }
 }
 
 async function adminAjustarSaldo(sinal) {
@@ -1364,7 +1369,7 @@ async function adminAjustarSaldo(sinal) {
   const valor = Math.round((Number(el('adminSaldoValor')?.value) || 0) * 100) / 100;
   if (!uidSel) return toast('Selecione um usuário.');
   if (!(valor > 0)) return toast('Digite um valor maior que zero.');
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Banco não conectado.');
   const snap = await db.child('usuarios/' + uidSel).once('value');
   if (!snap.exists()) return toast('Usuário não encontrado.');
   const u = snap.val();
@@ -1384,7 +1389,7 @@ async function adminAjustarSaldo(sinal) {
 }
 
 async function adminExcluirUsuario(id) {
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Banco não conectado.');
   const cache = (ADMIN_CACHE.usuarios || {})[id] || {};
   const nome = cache.nome || id;
   if (!confirm(`Excluir o usuário "${nome}"? Essa ação não pode ser desfeita.`)) return;
@@ -1410,7 +1415,7 @@ async function adminExcluirUsuario(id) {
 async function adminCarregarBanners() {
   const tbody = el('adminBannersBody'); if (!tbody) return;
   try {
-    const r = await fetch(TAX_API + '/admin/marketing/list', { headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') } });
+    const r = await fetch(TAX_API + '/admin/marketing/list', { headers: { Authorization: 'Bearer ' + adminToken() } });
     const j = await r.json();
     const lista = j.banners || [];
     if (el('adminBannersCount')) el('adminBannersCount').textContent = lista.length;
@@ -1437,7 +1442,7 @@ async function adminEnviarBanner() {
   form.append('type', el('bannerTipo')?.value || 'carousel');
   setMensagem('adminBannerMsg', 'Enviando...', 'loading');
   try {
-    const r = await fetch(TAX_API + '/admin/marketing/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') }, body: form });
+    const r = await fetch(TAX_API + '/admin/marketing/upload', { method: 'POST', headers: { Authorization: 'Bearer ' + adminToken() }, body: form });
     const j = await r.json();
     if (!j.ok) return setMensagem('adminBannerMsg', j.message || 'Erro ao enviar.', 'error');
     setMensagem('adminBannerMsg', 'Banner enviado com sucesso!', 'success');
@@ -1450,7 +1455,7 @@ async function adminEditarBannerLink(id) {
   const atual = String(prompt('Novo link (deixe vazio para remover):') ?? '');
   try {
     await fetch(TAX_API + '/admin/marketing/' + encodeURIComponent(id), {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') },
+      method: 'PATCH', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken() },
       body: JSON.stringify({ link: atual }),
     });
     adminCarregarBanners();
@@ -1459,7 +1464,7 @@ async function adminEditarBannerLink(id) {
 async function adminExcluirBanner(id) {
   if (!confirm('Excluir este banner?')) return;
   try {
-    await fetch(TAX_API + '/admin/marketing/delete/' + encodeURIComponent(id), { method: 'DELETE', headers: { Authorization: 'Bearer ' + (ADMIN_CONFIG.token || '') } });
+    await fetch(TAX_API + '/admin/marketing/delete/' + encodeURIComponent(id), { method: 'DELETE', headers: { Authorization: 'Bearer ' + adminToken() } });
     adminCarregarBanners();
   } catch (e) { toast('Erro: ' + e.message); }
 }
@@ -1554,7 +1559,7 @@ async function adminCarregarAparencia() {
 }
 
 async function adminSalvarAparencia() {
-  if (!db) return setMensagem('adminAparenciaMsg', 'Firebase não conectado.', 'error');
+  if (!db) return setMensagem('adminAparenciaMsg', 'Banco não conectado.', 'error');
   const nome = String(el('adminNomePlataforma')?.value || '').trim().slice(0, 24) || 'Veloster Capital';
   const cor = String(el('adminCorPrimaria')?.value || '#d97706').trim();
   if (!/^#[0-9a-f]{6}$/i.test(cor)) return setMensagem('adminAparenciaMsg', 'Cor inválida. Use o seletor de cor.', 'error');
@@ -1569,7 +1574,7 @@ async function adminSalvarAparencia() {
   }
 }
 async function processarRendimentos(ev) {
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Banco não conectado.');
   if (!confirm('Processar rendimentos de TODOS os clientes agora?')) return;
   const btn = ev && ev.currentTarget ? ev.currentTarget : (ev && ev.target);
   const original = btn ? btn.innerHTML : '';
@@ -1636,7 +1641,7 @@ async function processarRendimentos(ev) {
   }
 }
 async function alternarBloqueioSaques() {
-  if (!db) return toast('Firebase não conectado.');
+  if (!db) return toast('Banco não conectado.');
   try {
     const s = await db.child('controle/saques_bloqueados').once('value');
     const atual = s.val() || { bloqueado: false };
@@ -1675,7 +1680,7 @@ async function salvarLinkGrupo() {
   if (!campo) return;
   const url = campo.value.trim();
   if (!/^https?:\/\//i.test(url)) return setMensagem('adminLinkGrupoMsg', 'Informe uma URL válida (começa com https://).', 'error');
-  if (!db) return setMensagem('adminLinkGrupoMsg', 'Firebase não conectado.', 'error');
+  if (!db) return setMensagem('adminLinkGrupoMsg', 'Banco não conectado.', 'error');
   await db.child('config/link_grupo').set(url);
   aplicarLinkGrupo(url);
   setMensagem('adminLinkGrupoMsg', 'Link do grupo salvo e aplicado em todas as páginas.', 'success');
@@ -1690,7 +1695,7 @@ function listaCodigosRoleta() {
   return arr.map(x => String(x).trim().toUpperCase()).filter(Boolean);
 }
 async function carregarCodigosRoleta() {
-  if (!db) return;
+  if (!sessionToken()) return;
   try {
     const s = await db.child('config/codigo_roleta').once('value');
     if (s.exists()) CONFIG.codigo_roleta = s.val();
@@ -1759,7 +1764,7 @@ function removerCodigoBonus(i) {
   setMensagem('adminBonusMsg', `${codigo} removido da lista. Clique em "Salvar todos".`, 'success');
 }
 async function carregarCodigosBonus() {
-  if (!db) return;
+  if (!sessionToken()) return;
   try {
     const s = await db.child('config/codigo_bonus').once('value');
     if (s.exists()) CONFIG.codigo_bonus = s.val();
@@ -1775,27 +1780,24 @@ async function salvarCodigosBonus() {
   setMensagem('adminBonusMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 async function resgatarBonus(codigo, usuario) {
-  const item = listaCodigosBonus().find(x => x.codigo === String(codigo || '').trim().toUpperCase());
+  const cod = String(codigo || '').trim().toUpperCase();
+  const item = listaCodigosBonus().find(x => String(x.codigo || '').toUpperCase() === cod);
   if (!item) return setMensagem('bonusResult', 'Código inválido.', 'error');
-  if (!db) return setMensagem('bonusResult', 'Firebase não conectado.', 'error');
-  const jaPegou = await db.child('bonus_resgates/' + usuario.id + '/' + codigo).once('value');
-  if (jaPegou.exists()) return setMensagem('bonusResult', 'Você já resgatou este código.', 'error');
-  const valor = item.valor;
-  const snap = await db.child('usuarios/' + usuario.id).once('value');
-  if (!snap.exists()) return setMensagem('bonusResult', 'Usuário não encontrado.', 'error');
-  const atual = snap.val();
-  await db.child('usuarios/' + usuario.id + '/saldo').set((Number(atual.saldo) || 0) + valor);
-  await db.child('bonus_resgates/' + usuario.id + '/' + codigo).set(new Date().toISOString());
-  const tx = await db.child('transacoes').push({
-    usuario_id: usuario.id, usuario_email: usuario.email, usuario_nome: usuario.nome,
-    tipo: 'bonus', valor, status: 'aprovada',
-    observacao: `Bônus resgatado — código ${codigo}`, criado_em: new Date().toISOString()
-  });
-  await db.child('transacoes_usuario/' + usuario.id + '/' + tx.key).set(true);
-  usuario.saldo = (Number(atual.saldo) || 0) + valor;
-  salvarUsuarioLocal(usuario);
-  if (el('saldo')) el('saldo').textContent = Number(usuario.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  setMensagem('bonusResult', `Bônus de ${fmtBRL(valor)} creditado no seu saldo!`, 'success');
+  try {
+    const resp = await fetch(TAX_API + '/bonus/resgatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
+      body: JSON.stringify({ codigo: cod }),
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok) return setMensagem('bonusResult', r.message || 'Erro ao resgatar.', 'error');
+    usuario.saldo = Number(r.saldo) || 0;
+    salvarUsuarioLocal(usuario);
+    if (el('saldo')) el('saldo').textContent = Number(usuario.saldo).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    setMensagem('bonusResult', `Bônus de ${fmtBRL(r.valor || item.valor)} creditado no seu saldo!`, 'success');
+  } catch (e) {
+    setMensagem('bonusResult', 'Erro ao resgatar: ' + e.message, 'error');
+  }
 }
 
 // ------------------------------------------------------------
@@ -1806,11 +1808,9 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarCodigosRoleta();
   carregarCodigosBonus();
   carregarLinkGrupo();
-  if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
-    carregarConfigAdmin().then(() => {
-      adminCarregarGateway();
-      adminCarregarBanners();
-    });
+  if (/\/(admin)(\.html)?\/?$/.test(location.pathname) && adminToken()) {
+    adminCarregarGateway();
+    adminCarregarBanners();
   }
 
   if (/\/(cliente)(\.html)?\/?$/.test(location.pathname)) iniciarDashboard();
@@ -1854,7 +1854,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
-    if (sessionStorage.getItem('admin_taxinexo') === 'sim') carregarAdmin();
+    if (adminToken()) carregarAdmin();
   }
 });
 

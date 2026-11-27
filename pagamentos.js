@@ -22,7 +22,10 @@ async function criarCobrancaPIX(valor, descricao, emailPagador, idUsuario) {
     const identifier = gerarIdentifier();
     const response = await fetch(SIGILOPAY_CONFIG.baseURL + '/pix/deposit', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + (localStorage.getItem('token_taxinexo') || ''),
+      },
       body: JSON.stringify({
         amount: parseFloat(parseFloat(valor).toFixed(2)),
         identifier,
@@ -109,7 +112,10 @@ async function criarTransferencia(valor, chavePix, dadosProprietario, idUsuario)
 
 async function consultarSaldo() {
   try {
-    const response = await fetch(SIGILOPAY_CONFIG.baseURL + '/saldo');
+    const token = sessionStorage.getItem('admin_token') || localStorage.getItem('token_taxinexo') || '';
+    const response = await fetch(SIGILOPAY_CONFIG.baseURL + '/saldo', {
+      headers: token ? { Authorization: 'Bearer ' + token } : {},
+    });
     if (!response.ok) return { sucesso: false, available: 0 };
     const data = await response.json();
     return {

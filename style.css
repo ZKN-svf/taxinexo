@@ -72,7 +72,7 @@ button:disabled{cursor:wait;opacity:.65}
 .pix-tipo.ok{color:#4dffc3}
 .pix-tipo.erro{color:#ff8a8a}
 
-/* ===== Funcionalidades (Firebase) ===== */
+/* ===== Funcionalidades (Worker/D1) ===== */
 .sair-btn{margin-left:12px;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:transparent;color:var(--cyan);font-size:12px;font-weight:700}
 .saldo-indicacao{text-align:right;padding-left:18px}
 .saldo-indicacao p{margin:0 0 4px;font-size:11px;color:var(--muted);text-transform:uppercase}
