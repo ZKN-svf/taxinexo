@@ -9,6 +9,8 @@
 - Admin: login via Worker (`/api/admin/login`), sessão assinada, sem senha no banco.
 - Senhas de usuários: **PBKDF2-SHA256 (100.000 iterações)**; hashes legados são migrados no primeiro login.
 - Backup pré-migração: `C:\Users\ZKN\Desktop\taxinexo-backup-incidente-2026-11-27T00-43-48-818Z.json`
+- Backup D1 (SQL): `C:\Users\ZKN\Desktop\veloster-d1-backup-2026-11-26T22-56-44.sql`
+- Backup do Firebase: o namespace `/taxinexo` foi apagado após a migração; os arquivos acima são a cópia de segurança.
 
 ## O que foi corrigido
 
