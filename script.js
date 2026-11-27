@@ -1160,6 +1160,8 @@ async function entrarAdmin() {
     adminCarregarBanners();
     adminCarregarPlanos();
     adminCarregarFinanceiro();
+    carregarCodigosRoleta();
+    carregarCodigosBonus();
   } catch (e) {
     setMensagem('adminMsg', 'Erro ao entrar: ' + e.message, 'error');
   }
@@ -2324,10 +2326,13 @@ async function salvarLinkGrupo() {
 // ------------------------------------------------------------
 // ADMIN — CÓDIGOS DA ROLETA
 // ------------------------------------------------------------
+function codigoPromocionalValido(codigo) {
+  return /^[A-Z0-9_-]{3,24}$/.test(String(codigo || '').trim().toUpperCase());
+}
 function listaCodigosRoleta() {
   const bruto = CONFIG.codigo_roleta || 'ROLETA';
-  const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\n,]+/);
-  return arr.map(x => String(x).trim().toUpperCase()).filter(Boolean);
+  const arr = Array.isArray(bruto) ? bruto : String(bruto).split(/[\s,;]+/);
+  return arr.map(x => String(x).trim().toUpperCase()).filter(c => c && codigoPromocionalValido(c));
 }
 async function carregarCodigosRoleta() {
   if (!sessionToken()) return;
@@ -2341,10 +2346,16 @@ async function carregarCodigosRoleta() {
 async function salvarCodigosRoleta() {
   const campo = el('adminCodigosRoleta');
   if (!campo || !db) return;
-  const lista = campo.value.split(/[\n,]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+  const brutos = campo.value.split(/[\s,;]+/).map(x => x.trim().toUpperCase()).filter(Boolean);
+  const invalidos = brutos.filter(c => !codigoPromocionalValido(c));
+  if (invalidos.length) {
+    return setMensagem('adminRoletaMsg', 'Código inválido: ' + invalidos.slice(0, 3).join(', ') + '. Use letras, números, _ ou - (3 a 24).', 'error');
+  }
+  const lista = [...new Set(brutos)];
   if (!lista.length) return setMensagem('adminRoletaMsg', 'Digite pelo menos um código.', 'error');
   await db.child('config/codigo_roleta').set(lista);
   CONFIG.codigo_roleta = lista;
+  campo.value = lista.join('\n');
   setMensagem('adminRoletaMsg', lista.length + ' código(s) salvo(s) e ativo(s) agora.', 'success');
 }
 
@@ -2354,7 +2365,7 @@ function listaCodigosBonus() {
   let arr;
   if (Array.isArray(bruto)) arr = bruto;
   else if (bruto && typeof bruto === 'object') arr = [bruto]; // objeto único (ex.: {codigo, valor})
-  else arr = String(bruto).split(/[\n,]+/);
+  else arr = String(bruto).split(/[\s,;]+/);
   return arr.map(x => {
     const valorPadrao = Math.round((Number(CONFIG.valor_bonus) || 5) * 100) / 100;
     if (x && typeof x === 'object') {
@@ -2364,7 +2375,7 @@ function listaCodigosBonus() {
       };
     }
     return { codigo: String(x).trim().toUpperCase(), valor: valorPadrao };
-  }).filter(x => x.codigo);
+  }).filter(x => x.codigo && codigoPromocionalValido(x.codigo));
 }
 function renderBonusLista() {
   const box = el('adminBonusLista'); if (!box) return;
@@ -2380,6 +2391,9 @@ function adicionarCodigoBonus() {
   const codigo = String(c?.value || '').trim().toUpperCase();
   const valor = Math.round((Number(v?.value) || 0) * 100) / 100;
   if (!codigo) return setMensagem('adminBonusMsg', 'Digite o código.', 'error');
+  if (!codigoPromocionalValido(codigo)) {
+    return setMensagem('adminBonusMsg', 'Código inválido. Use letras, números, _ ou - (3 a 24).', 'error');
+  }
   if (!(valor > 0)) return setMensagem('adminBonusMsg', 'Digite um valor maior que zero.', 'error');
   const lista = listaCodigosBonus();
   if (lista.some(x => x.codigo === codigo)) return setMensagem('adminBonusMsg', 'Esse código já existe.', 'error');
