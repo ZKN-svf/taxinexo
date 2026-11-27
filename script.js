@@ -1376,12 +1376,12 @@ function renderAdminUsuarios() {
 function renderAdminInvestimentos() {
   const tbody = el('adminInvestBody'); if (!tbody) return;
   const busca = String(el('adminBuscaInvest')?.value || '').trim().toLowerCase();
-  let lista = Object.values(ADMIN_CACHE.investimentos || {});
+  let lista = Object.entries(ADMIN_CACHE.investimentos || {}).map(([key, i]) => ({ ...(i || {}), __key: key }));
   if (busca) lista = lista.filter(i => [i.usuario_nome, i.plano_nome, i.usuario_email].some(v => String(v || '').toLowerCase().includes(busca)));
   lista.sort((a, b) => valorTempo(b.criado_em) - valorTempo(a.criado_em));
   if (el('adminInvestCount')) el('adminInvestCount').textContent = lista.length;
   tbody.innerHTML = lista.length ? lista.slice(0, 300).map(i => {
-    const dias = Number(i.dias_pagos || 0), total = Number(i.duracao_dias || 0);
+    const dias = Number(i.dias_pagos || 0), total = Number(i.duracao_dias) || Number(i.duracao) || 0;
     const pct = total > 0 ? Math.min(100, Math.round(dias / total * 100)) : 0;
     return `<tr>
       <td><strong>${escTexto(i.usuario_nome || '-')}</strong><small>${escTexto(i.usuario_email || '')}</small></td>
@@ -1391,8 +1391,81 @@ function renderAdminInvestimentos() {
       <td><div class="mini-progress"><span style="width:${pct}%"></span></div><small>${dias}/${total} · ${pct}%</small></td>
       <td>${fmtBRL(i.rendimento_pago)}</td>
       <td>${statusPill(i.status)}</td>
+      <td class="td-acoes">
+        <button class="mini-btn" type="button" onclick="adminZerarProgressoInvestimento('${escTexto(i.__key)}')" title="Zerar dias e rendimento pagos">Zerar</button>
+        <button class="mini-btn danger" type="button" onclick="adminRemoverInvestimento('${escTexto(i.__key)}')" title="Remover este plano do cliente">Remover</button>
+      </td>
     </tr>`;
-  }).join('') : '<tr><td colspan="7" class="empty">Nenhum investimento encontrado.</td></tr>';
+  }).join('') : '<tr><td colspan="8" class="empty">Nenhum investimento encontrado.</td></tr>';
+}
+
+async function adminZerarProgressoInvestimento(key) {
+  const inv = ADMIN_CACHE.investimentos && ADMIN_CACHE.investimentos[key];
+  if (!inv) return toast('Investimento não encontrado. Recarregue o painel.');
+  if (!confirm(`Zerar o progresso de "${inv.plano_nome || 'plano'}" de ${inv.usuario_nome || 'cliente'}?\n\nDias pagos e rendimento pago serão zerados e o ciclo reinicia. Valores já creditados no saldo não serão estornados.`)) return;
+  try {
+    const agora = new Date();
+    const ciclo = Math.max(1, Number(inv.duracao_dias) || Number(inv.duracao) || 20);
+    const fim = new Date(agora.getTime() + ciclo * 86400000);
+    await db.child('investimentos/' + key).update({
+      dias_pagos: 0,
+      rendimento_pago: 0,
+      status: 'ativo',
+      data_inicio: agora.toISOString(),
+      data_fim: fim.toISOString(),
+      proximo_pagamento: new Date(agora.getTime() + 86400000).toISOString(),
+      concluido_em: null,
+    });
+    toast('Progresso zerado. O ciclo do plano foi reiniciado.');
+    carregarAdmin();
+  } catch (e) {
+    toast('Erro ao zerar progresso: ' + e.message);
+  }
+}
+
+async function adminRemoverInvestimento(key) {
+  const inv = ADMIN_CACHE.investimentos && ADMIN_CACHE.investimentos[key];
+  if (!inv) return toast('Investimento não encontrado. Recarregue o painel.');
+  if (!confirm(`Remover o plano "${inv.plano_nome || 'plano'}" de ${inv.usuario_nome || 'cliente'}?\n\nO investimento será apagado, o progresso zerado e o limite do plano liberado. Saldo, rendimentos já pagos e histórico de transações não serão alterados.`)) return;
+  try {
+    const uid = String(inv.usuario_id || '');
+    if (!uid) return toast('Investimento sem usuário vinculado.');
+    await db.child('investimentos_removidos').push({
+      ...inv,
+      removido_em: new Date().toISOString(),
+      removido_por: 'admin',
+    });
+    await db.child('investimentos/' + key).remove();
+    await db.child('investimentos_usuario/' + uid + '/' + key).remove();
+    const snap = await db.child('usuarios/' + uid).once('value');
+    if (snap.exists()) {
+      const u = snap.val();
+      const valor = Number(inv.valor_aplicado) || 0;
+      const planosComprados = {};
+      if (Array.isArray(u.planos_comprados)) {
+        for (const id of u.planos_comprados) {
+          const k = String(id);
+          planosComprados[k] = (Number(planosComprados[k]) || 0) + 1;
+        }
+      } else {
+        Object.assign(planosComprados, u.planos_comprados || {});
+      }
+      const pid = String(inv.plano_id ?? inv.planoId ?? '');
+      if (pid) {
+        const qtd = Math.max(0, Number(planosComprados[pid] || 0) - 1);
+        if (qtd <= 0) delete planosComprados[pid];
+        else planosComprados[pid] = qtd;
+      }
+      await db.child('usuarios/' + uid).update({
+        investido: Math.max(0, Math.round(((Number(u.investido) || 0) - valor) * 100) / 100),
+        planos_comprados: planosComprados,
+      });
+    }
+    toast('Plano removido. Limite liberado e progresso zerado.');
+    carregarAdmin();
+  } catch (e) {
+    toast('Erro ao remover plano: ' + e.message);
+  }
 }
 
 function renderAdminSelectUsuarios() {
