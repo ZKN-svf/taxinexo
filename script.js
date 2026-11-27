@@ -1197,6 +1197,7 @@ async function carregarAdmin() {
     renderAdminUsuarios();
     renderAdminInvestimentos();
     renderAdminSelectUsuarios();
+    renderAdminGraficos();
     adminCarregarAparencia();
 
     if (el('adminUltimaAtualizacao')) {
@@ -1371,6 +1372,84 @@ function renderAdminUsuarios() {
       <td class="td-acoes"><button class="mini-btn danger" type="button" onclick="adminExcluirUsuario('${escTexto(u.id)}')">Excluir</button></td>
     </tr>`;
   }).join('') : '<tr><td colspan="7" class="empty">Nenhum usuário encontrado.</td></tr>';
+}
+
+// ------------------------------------------------------------
+// ADMIN — GRÁFICOS DA VISÃO GERAL
+// ------------------------------------------------------------
+function renderAdminGraficos() {
+  const bars = el('adminBarsFinanceiro');
+  const spark = el('adminSparkCadastros');
+  if (!bars || !spark) return;
+  const txs = ADMIN_CACHE.transacoes || [];
+  const aprovada = (t) => statusTipo(t && t.status) === 'ok';
+  const somaTipo = (tipo) => txs
+    .filter(t => t && t.tipo === tipo && aprovada(t))
+    .reduce((s, t) => s + (Number(t.valor) || 0), 0);
+
+  const depositos = somaTipo('deposito');
+  const saquesPagos = (ADMIN_CACHE.saques || [])
+    .filter(s => s && statusTipo(s.status) === 'ok')
+    .reduce((s, x) => s + (Number(x.valor_liquido ?? x.valor_bruto) || 0), 0);
+  const investimentos = Object.values(ADMIN_CACHE.investimentos || {})
+    .reduce((s, i) => s + (Number(i && i.valor_aplicado) || 0), 0);
+  const rendimentos = Object.values(ADMIN_CACHE.usuarios || {})
+    .reduce((s, u) => s + (Number(u && u.rendimentos) || 0), 0);
+  const comissoes = somaTipo('indicacao');
+  const bonus = somaTipo('bonus');
+  const pendDep = txs.filter(t => t && t.tipo === 'deposito' && statusTipo(t.status) === 'warn').length;
+  const pendSaq = (ADMIN_CACHE.saques || []).filter(s => s && statusTipo(s.status) === 'warn').length;
+
+  const categorias = [
+    { label: 'Depósitos', valor: depositos, cor: '#16a34a' },
+    { label: 'Saques pagos', valor: saquesPagos, cor: '#dc2626' },
+    { label: 'Investimentos', valor: investimentos, cor: '#f97316' },
+    { label: 'Rendimentos', valor: rendimentos, cor: '#eab308' },
+    { label: 'Comissões', valor: comissoes, cor: '#7c3aed' },
+    { label: 'Bônus', valor: bonus, cor: '#db2777' },
+  ];
+  const maior = Math.max(1, ...categorias.map(c => Number(c.valor) || 0));
+  bars.innerHTML = categorias.map(c => {
+    const valor = Number(c.valor) || 0;
+    const pct = valor > 0 ? Math.max(2, Math.round((valor / maior) * 100)) : 0;
+    return `<div class="admin-bar-row">
+      <span class="admin-bar-label" title="${escTexto(c.label)}">${escTexto(c.label)}</span>
+      <span class="admin-bar-track"><span class="admin-bar-fill" style="width:${pct}%;background:${c.cor}"></span></span>
+      <strong class="admin-bar-value">${fmtBRL(valor)}</strong>
+    </div>`;
+  }).join('');
+
+  const notes = el('adminChartNotes');
+  if (notes) {
+    notes.innerHTML = `<span>Depósitos pendentes <b>${pendDep}</b></span><span>Saques pendentes <b>${pendSaq}</b></span>`;
+  }
+
+  // Cadastros dos últimos 7 dias
+  const usuarios = Object.values(ADMIN_CACHE.usuarios || {});
+  const hoje = new Date();
+  hoje.setHours(12, 0, 0, 0);
+  const dias = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(hoje);
+    d.setDate(d.getDate() - i);
+    const chave = d.toISOString().slice(0, 10);
+    dias.push({
+      chave,
+      label: d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+      total: usuarios.filter(u => String((u && u.criado_em) || '').slice(0, 10) === chave).length,
+    });
+  }
+  const maiorDia = Math.max(1, ...dias.map(d => d.total));
+  const totalCad = dias.reduce((s, d) => s + d.total, 0);
+  const totalEl = el('adminChartCadastrosTotal');
+  if (totalEl) totalEl.textContent = totalCad + ' em 7 dias';
+  spark.innerHTML = dias.map(d => `
+    <div class="admin-spark-col" title="${escTexto(d.label)}: ${d.total} cadastro(s)">
+      <span class="admin-spark-value">${d.total}</span>
+      <span class="admin-spark-bar" style="height:${d.total > 0 ? Math.max(5, Math.round((d.total / maiorDia) * 82)) : 3}px"></span>
+      <span class="admin-spark-label">${escTexto(d.label)}</span>
+    </div>
+  `).join('');
 }
 
 // ------------------------------------------------------------

@@ -539,6 +539,50 @@ html[data-tema="escuro"] .admin-plano-status.off{color:#ffb4c0;background:rgba(2
   .admin-page .admin-plano-grid{grid-template-columns:1fr}
 }
 
+/* Gráfico da visão geral */
+.admin-chart-card{
+  margin-top:16px;padding:16px;border:1px solid var(--line);border-radius:18px;
+  background:var(--surface);box-shadow:0 20px 48px -42px rgba(0,0,0,.45);
+}
+.admin-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-chart-head h3{margin:0;font-family:var(--display);font-size:14px;color:var(--text)}
+.admin-chart-head p{margin:3px 0 0;font-size:10.5px;color:var(--muted)}
+.admin-chart-tag{
+  flex:none;padding:4px 9px;border-radius:999px;font-size:8px;font-weight:800;
+  letter-spacing:.08em;text-transform:uppercase;color:var(--accent-dark);
+  background:rgba(var(--accent-rgb),.09);border:1px solid rgba(var(--accent-rgb),.24);
+}
+.admin-chart-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px;margin-top:14px;align-items:start}
+.admin-chart-panel{min-width:0}
+.admin-chart-panel-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}
+.admin-chart-panel-head h4{margin:0;font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.admin-chart-panel-head small{font-size:9px;font-weight:800;color:var(--accent-dark)}
+.admin-bars{display:grid;gap:9px}
+.admin-bar-row{display:grid;grid-template-columns:86px minmax(0,1fr) auto;align-items:center;gap:9px}
+.admin-bar-label{font-size:9.5px;font-weight:700;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-bar-track{height:9px;border-radius:999px;overflow:hidden;border:1px solid var(--line);background:rgba(var(--accent-rgb),.05)}
+.admin-bar-fill{display:block;height:100%;border-radius:999px;transition:width .45s cubic-bezier(.2,.7,.2,1)}
+.admin-bar-value{font-size:10.5px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.admin-chart-notes{display:flex;gap:10px;flex-wrap:wrap;margin-top:11px;font-size:8.5px;color:var(--muted)}
+.admin-chart-notes span{display:inline-flex;align-items:center;gap:4px}
+.admin-chart-notes b{color:var(--accent-dark);font-weight:800}
+.admin-spark{display:flex;align-items:flex-end;gap:6px;height:132px;padding:4px 2px 0;border-bottom:1px solid var(--line)}
+.admin-spark-col{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:3px}
+.admin-spark-value{font-size:8.5px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.admin-spark-bar{width:min(100%,26px);min-height:3px;border-radius:6px 6px 2px 2px;background:var(--grad);transition:height .45s cubic-bezier(.2,.7,.2,1)}
+.admin-spark-label{font-size:7.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+html[data-tema="escuro"] .admin-chart-tag{color:#ffd27a;background:rgba(246,198,103,.13);border-color:rgba(246,198,103,.32)}
+html[data-tema="escuro"] .admin-chart-panel-head small{color:#ffd27a}
+html[data-tema="escuro"] .admin-chart-notes b{color:#ffd27a}
+@media(max-width:700px){
+  .admin-chart-card{padding:13px;border-radius:14px}
+  .admin-chart-grid{grid-template-columns:1fr;gap:16px}
+  .admin-bar-row{grid-template-columns:76px minmax(0,1fr) auto;gap:7px}
+  .admin-bar-label{font-size:9px}
+  .admin-bar-value{font-size:9.5px}
+  .admin-spark{height:112px}
+}
+
 /* Rede de indicações no admin */
 .admin-rede-dialog{
   width:min(94vw,620px);max-height:88vh;overflow:auto;
