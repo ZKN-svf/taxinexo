@@ -715,6 +715,8 @@ async function carregarConfigFinanceira() {
     const s = await db.child('config/financeiro').once('value');
     const c = s.val();
     if (c && typeof c === 'object') {
+      if (Number(c.depositoMinimo) > 0) CONFIG.depositoMinimo = Number(c.depositoMinimo);
+      if (Number(c.depositoMaximo) > 0) CONFIG.depositoMaximo = Number(c.depositoMaximo);
       if (Number(c.saqueMinimo) > 0) CONFIG.saqueMinimo = Number(c.saqueMinimo);
       if (Number(c.taxaSaquePorcento) >= 0) CONFIG.taxaSaquePorcento = Number(c.taxaSaquePorcento);
       if (Number(c.saquesPorDia) > 0) CONFIG.saquesPorDia = Math.floor(Number(c.saquesPorDia));
@@ -731,6 +733,21 @@ function aplicarConfigFinanceira() {
   }
   const taxa = document.querySelector('#saqueResumo dt');
   if (taxa) taxa.textContent = `Taxa de saque (${CONFIG.taxaSaquePorcento}%)`;
+  const depNotice = el('depositoMin');
+  if (depNotice) {
+    depNotice.innerHTML = `Depósito mínimo: <strong>${fmtBRL(CONFIG.depositoMinimo)}</strong> · máximo ${fmtBRL(CONFIG.depositoMaximo)}`;
+  }
+  const depInput = el('depositoValor');
+  if (depInput) {
+    depInput.min = String(CONFIG.depositoMinimo);
+    depInput.max = String(CONFIG.depositoMaximo);
+  }
+  document.querySelectorAll('.amount-options button[data-valor]').forEach(btn => {
+    const valor = Number(btn.dataset.valor) || 0;
+    const fora = valor < CONFIG.depositoMinimo || valor > CONFIG.depositoMaximo;
+    btn.hidden = fora;
+    btn.disabled = fora;
+  });
 }
 async function contarInvestimentosDoPlano(uid, planoId) {
   if (!db) return 0;
@@ -2100,6 +2117,8 @@ async function adminSalvarPlanos() {
 
 async function adminCarregarFinanceiro() {
   let cfg = {
+    depositoMinimo: CONFIG.depositoMinimo,
+    depositoMaximo: CONFIG.depositoMaximo,
     saqueMinimo: CONFIG.saqueMinimo,
     taxaSaquePorcento: CONFIG.taxaSaquePorcento,
     saquesPorDia: CONFIG.saquesPorDia,
@@ -2108,6 +2127,8 @@ async function adminCarregarFinanceiro() {
     const s = await db.child('config/financeiro').once('value');
     const v = s.val();
     if (v && typeof v === 'object') {
+      if (Number(v.depositoMinimo) > 0) cfg.depositoMinimo = Number(v.depositoMinimo);
+      if (Number(v.depositoMaximo) > 0) cfg.depositoMaximo = Number(v.depositoMaximo);
       if (Number(v.saqueMinimo) > 0) cfg.saqueMinimo = Number(v.saqueMinimo);
       if (Number(v.taxaSaquePorcento) >= 0) cfg.taxaSaquePorcento = Number(v.taxaSaquePorcento);
       if (Number(v.saquesPorDia) > 0) cfg.saquesPorDia = Math.floor(Number(v.saquesPorDia));
@@ -2115,17 +2136,25 @@ async function adminCarregarFinanceiro() {
   } catch (e) {
     console.warn('[Financeiro admin]', e);
   }
+  if (el('adminDepositoMinimo')) el('adminDepositoMinimo').value = cfg.depositoMinimo;
+  if (el('adminDepositoMaximo')) el('adminDepositoMaximo').value = cfg.depositoMaximo;
   if (el('adminSaqueMinimo')) el('adminSaqueMinimo').value = cfg.saqueMinimo;
   if (el('adminTaxaSaque')) el('adminTaxaSaque').value = cfg.taxaSaquePorcento;
   if (el('adminSaquesPorDia')) el('adminSaquesPorDia').value = cfg.saquesPorDia;
 }
 
 async function adminSalvarFinanceiro() {
+  const depositoMinimo = Math.max(1, Number(el('adminDepositoMinimo')?.value) || 0);
+  const depositoMaximo = Math.max(1, Number(el('adminDepositoMaximo')?.value) || 0);
   const saqueMinimo = Math.max(1, Number(el('adminSaqueMinimo')?.value) || 0);
   const taxa = Math.min(100, Math.max(0, Number(el('adminTaxaSaque')?.value) || 0));
   const porDia = Math.max(1, Math.floor(Number(el('adminSaquesPorDia')?.value) || 0));
+  if (!(depositoMinimo > 0)) return setMensagem('adminFinanceiroMsg', 'Informe um depósito mínimo válido.', 'error');
+  if (depositoMaximo < depositoMinimo) return setMensagem('adminFinanceiroMsg', 'O depósito máximo precisa ser maior ou igual ao mínimo.', 'error');
   if (!(saqueMinimo > 0)) return setMensagem('adminFinanceiroMsg', 'Informe um saque mínimo válido.', 'error');
   const cfg = {
+    depositoMinimo,
+    depositoMaximo,
     saqueMinimo,
     taxaSaquePorcento: taxa,
     saquesPorDia: porDia,
@@ -2133,12 +2162,14 @@ async function adminSalvarFinanceiro() {
   };
   try {
     await db.child('config/financeiro').set(cfg);
+    CONFIG.depositoMinimo = depositoMinimo;
+    CONFIG.depositoMaximo = depositoMaximo;
     CONFIG.saqueMinimo = saqueMinimo;
     CONFIG.taxaSaquePorcento = taxa;
     CONFIG.saquesPorDia = porDia;
     aplicarConfigFinanceira();
     setMensagem('adminFinanceiroMsg', 'Regras financeiras salvas.', 'success');
-    toast('Saque mínimo e taxas atualizados.');
+    toast('Depósito, saque e taxas atualizados.');
   } catch (e) {
     setMensagem('adminFinanceiroMsg', 'Erro ao salvar: ' + e.message, 'error');
   }

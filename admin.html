@@ -455,8 +455,10 @@
               <span class="admin-action-ico green ico-wallet" aria-hidden="true"></span>
               <div class="admin-action-body">
                 <h3>Regras financeiras</h3>
-                <p>O saque mínimo é validado no Worker e exibido no painel do cliente.</p>
+                <p>Depósito mínimo/máximo e saque mínimo são validados no Worker e exibidos no painel do cliente.</p>
                 <div class="form-grid">
+                  <label class="aparencia-field"><span>Depósito mínimo (R$)</span><input id="adminDepositoMinimo" type="number" min="1" step="0.01" inputmode="decimal"></label>
+                  <label class="aparencia-field"><span>Depósito máximo (R$)</span><input id="adminDepositoMaximo" type="number" min="1" step="0.01" inputmode="decimal"></label>
                   <label class="aparencia-field"><span>Saque mínimo (R$)</span><input id="adminSaqueMinimo" type="number" min="1" step="0.01" inputmode="decimal"></label>
                   <label class="aparencia-field"><span>Taxa de saque (%)</span><input id="adminTaxaSaque" type="number" min="0" max="100" step="0.01" inputmode="decimal"></label>
                   <label class="aparencia-field"><span>Saques por dia</span><input id="adminSaquesPorDia" type="number" min="1" step="1" inputmode="numeric"></label>
