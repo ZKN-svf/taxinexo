@@ -431,12 +431,33 @@ html[data-tema="escuro"] .team-total-obs strong{color:#ffd27a}
 /* Editor de planos no admin */
 .admin-planos-lista{display:grid;gap:14px;margin:16px 0}
 .admin-plano-card{
-  border:1px solid var(--line);border-radius:16px;padding:14px;
+  border:1px solid var(--line);border-radius:16px;padding:0;overflow:hidden;
   background:rgba(var(--accent-rgb),.035);
 }
-.admin-plano-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.admin-plano-top strong{font-family:var(--display);font-size:13px;color:var(--text)}
-.admin-plano-ativo{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer}
+.admin-plano-top{
+  display:flex;align-items:center;gap:10px;margin:0;padding:13px 14px;
+  cursor:pointer;list-style:none;user-select:none;
+}
+.admin-plano-top::-webkit-details-marker{display:none}
+.admin-plano-top::after{
+  content:'⌄';flex:none;font-size:15px;line-height:1;color:var(--muted);
+  transition:transform .18s;
+}
+.admin-plano-card[open] .admin-plano-top::after{transform:rotate(180deg)}
+.admin-plano-top strong{
+  flex:1;min-width:0;font-family:var(--display);font-size:13px;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.admin-plano-status{
+  flex:none;padding:3px 8px;border-radius:999px;font-size:8px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;border:1px solid transparent;
+}
+.admin-plano-status.on{color:#15803d;background:rgba(22,163,74,.1);border-color:rgba(22,163,74,.28)}
+.admin-plano-status.off{color:#b91c1c;background:rgba(220,38,38,.08);border-color:rgba(220,38,38,.24)}
+html[data-tema="escuro"] .admin-plano-status.on{color:#4dffc3;background:rgba(52,211,153,.12);border-color:rgba(52,211,153,.3)}
+html[data-tema="escuro"] .admin-plano-status.off{color:#ffb4c0;background:rgba(251,113,133,.1);border-color:rgba(251,113,133,.3)}
+.admin-plano-body{padding:0 14px 14px}
+.admin-plano-ativo{display:inline-flex;align-items:center;gap:7px;margin:0 0 10px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer}
 .admin-plano-ativo input{width:auto;min-height:0;accent-color:var(--accent)}
 .admin-plano-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
 .admin-plano-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
@@ -455,4 +476,65 @@ html[data-tema="escuro"] .team-total-obs strong{color:#ffd27a}
 @media(max-width:760px){
   .admin-plano-grid{grid-template-columns:1fr}
   .admin-plano-foot img{width:96px;height:60px}
+}
+
+/* Admin no celular: menu em grade, cards e tabelas empilhadas */
+@media(max-width:700px){
+  .admin-page .topbar{
+    background:var(--bg);
+    backdrop-filter:none;-webkit-backdrop-filter:none;
+  }
+  .admin-page .topbar::after{display:none}
+  .admin-page .admin-nav{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;
+    overflow:visible;padding:6px;
+  }
+  .admin-page .admin-nav-item{
+    display:grid;grid-template-columns:18px minmax(0,1fr);gap:7px;
+    min-height:44px;padding:9px 8px;font-size:10.5px;line-height:1.2;
+    white-space:normal;text-align:left;
+  }
+  .admin-page .admin-nav-item .ico{width:15px;height:15px}
+  .admin-page .admin-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .admin-page .admin-stat{padding:12px 11px}
+  .admin-page .admin-stat strong{font-size:16px}
+  .admin-page .admin-action{display:block;padding:14px}
+  .admin-page .admin-action-ico{width:38px;height:38px;margin-bottom:9px}
+  .admin-page .admin-action-body{width:100%}
+  .admin-page .admin-action>.btn{width:100%;margin-top:8px}
+  .admin-page .admin-plano-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .admin-page .admin-plano-grid .form-full{grid-column:1/-1}
+  .admin-page .admin-plano-grid input[type=text],.admin-page .admin-plano-grid input[type=number]{
+    padding:9px 10px;min-height:44px;font-size:12px;
+  }
+  .admin-page .admin-plano-top{padding:12px}
+  .admin-page .admin-plano-body{padding:0 12px 12px}
+  .admin-page .admin-table-card .table-scroll{overflow:visible!important;max-height:none!important;padding:0!important}
+  .admin-page .admin-table-card table{display:block!important;min-width:0!important;width:100%!important}
+  .admin-page .admin-table-card thead{display:none!important}
+  .admin-page .admin-table-card tbody{display:grid!important;gap:10px!important}
+  .admin-page .admin-table-card tbody tr{
+    display:block!important;border:1px solid var(--line)!important;border-radius:14px!important;
+    padding:10px 12px!important;background:var(--surface)!important;margin:0!important;
+  }
+  .admin-page .admin-table-card tbody td{
+    display:block!important;padding:7px 0!important;border:0!important;
+    border-bottom:1px solid var(--line)!important;text-align:left!important;
+    font-size:12px!important;background:transparent!important;
+  }
+  .admin-page .admin-table-card tbody td:last-child{border-bottom:0!important}
+  .admin-page .admin-table-card tbody td::before{
+    content:attr(data-label)!important;display:block!important;margin-bottom:2px!important;
+    font-size:9px!important;font-weight:800!important;letter-spacing:.08em!important;
+    text-transform:uppercase!important;color:var(--muted)!important;
+  }
+  .admin-page .admin-table-card tbody td[colspan]{display:block!important;text-align:center!important;padding:12px 0!important}
+  .admin-page .admin-table-card tbody td[colspan]::before{display:none!important}
+  .admin-page .admin-table-card tbody td small{display:block!important;margin-top:2px!important}
+  .admin-page .admin-table-card .table-tools{width:100%}
+  .admin-page .admin-table-card .table-search-wrap{width:100%}
+}
+@media(max-width:360px){
+  .admin-page .admin-stats{grid-template-columns:1fr}
+  .admin-page .admin-plano-grid{grid-template-columns:1fr}
 }

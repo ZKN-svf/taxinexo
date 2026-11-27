@@ -702,7 +702,8 @@ async function carregarPlanosPublicos() {
     const r = await fetch(TAX_API + '/planos', { cache: 'no-store' });
     const j = await r.json().catch(() => ({}));
     if (r.ok && j.ok && Array.isArray(j.planos) && j.planos.length) {
-      planos = j.planos.map(normalizarPlano);
+      planos = j.planos.map(normalizarPlano)
+        .sort((a, b) => (a.entrada - b.entrada) || (a.id - b.id));
       atualizarSelectPlanos();
     }
   } catch (e) {
@@ -1608,6 +1609,34 @@ function adminSelecionarCor(cor) {
 }
 
 // ------------------------------------------------------------
+// ADMIN — TABELAS RESPONSIVAS (rótulos no celular)
+// ------------------------------------------------------------
+function rotularTabelasAdmin() {
+  document.querySelectorAll('.admin-table-card table').forEach(table => {
+    const cabecalhos = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+    table.querySelectorAll('tbody tr').forEach(tr => {
+      [...tr.children].forEach((td, i) => {
+        if (!td || td.tagName !== 'TD') return;
+        if (td.hasAttribute('colspan') || !cabecalhos[i]) {
+          td.removeAttribute('data-label');
+          return;
+        }
+        td.dataset.label = cabecalhos[i];
+      });
+    });
+  });
+}
+let _obsTabelasAdmin = null;
+function observarTabelasAdmin() {
+  if (_obsTabelasAdmin) return;
+  const alvo = document.querySelector('.admin-content');
+  if (!alvo) return;
+  rotularTabelasAdmin();
+  _obsTabelasAdmin = new MutationObserver(() => rotularTabelasAdmin());
+  _obsTabelasAdmin.observe(alvo, { childList: true, subtree: true });
+}
+
+// ------------------------------------------------------------
 // ADMIN — PLANOS E REGRAS FINANCEIRAS
 // ------------------------------------------------------------
 let planosAdmin = [];
@@ -1620,31 +1649,35 @@ function adminPlanosBase(lista) {
 function adminRenderPlanos() {
   const box = el('adminPlanosLista');
   if (!box) return;
+  planosAdmin.sort((a, b) => (Number(a.entrada) - Number(b.entrada)) || (Number(a.id) - Number(b.id)));
   if (!planosAdmin.length) {
     box.innerHTML = '<p class="empty">Nenhum plano. Clique em “Adicionar plano”.</p>';
     return;
   }
   box.innerHTML = planosAdmin.map(p => `
-    <article class="admin-plano-card" data-id="${p.id}">
-      <div class="admin-plano-top">
+    <details class="admin-plano-card" data-id="${p.id}" ${Number(p.id) === 0 ? 'open' : ''}>
+      <summary class="admin-plano-top">
         <strong>#${p.id} · ${escTexto(p.nome)}</strong>
-        <label class="admin-plano-ativo"><input type="checkbox" ${p.ativo !== false ? 'checked' : ''} onchange="adminAtualizarPlano(${p.id},'ativo',this.checked)"> Ativo</label>
+        <span class="admin-plano-status ${p.ativo !== false ? 'on' : 'off'}">${p.ativo !== false ? 'Ativo' : 'Inativo'}</span>
+      </summary>
+      <div class="admin-plano-body">
+        <label class="admin-plano-ativo"><input type="checkbox" ${p.ativo !== false ? 'checked' : ''} onchange="adminAtualizarPlano(${p.id},'ativo',this.checked)"> Ativo no site</label>
+        <div class="admin-plano-grid">
+          <label class="form-full"><span>Nome</span><input type="text" maxlength="60" value="${escTexto(p.nome)}" oninput="adminAtualizarPlano(${p.id},'nome',this.value)"></label>
+          <label><span>Entrada (R$)</span><input type="number" min="0" step="0.01" data-campo="entrada" value="${Number(p.entrada) || 0}" oninput="adminAtualizarPlano(${p.id},'entrada',this.value)"></label>
+          <label><span>Diária (R$)</span><input type="number" min="0" step="0.01" data-campo="diaria" value="${Number(p.diaria) || 0}" oninput="adminAtualizarPlano(${p.id},'diaria',this.value)"></label>
+          <label><span>Ciclo (dias)</span><input type="number" min="1" step="1" data-campo="ciclo" value="${Number(p.ciclo) || 20}" oninput="adminAtualizarPlano(${p.id},'ciclo',this.value)"></label>
+          <label><span>Total recebido (R$)</span><input type="number" min="0" step="0.01" data-campo="retorno" value="${Number(p.retorno) || 0}" oninput="adminAtualizarPlano(${p.id},'retorno',this.value)"></label>
+          <label><span>Limite por conta</span><input type="number" min="1" step="1" value="${Number(p.limite) || 2}" oninput="adminAtualizarPlano(${p.id},'limite',this.value)"></label>
+          <label class="form-full"><span>Foto do plano (URL)</span><input type="text" value="${escTexto(p.imagem || '')}" placeholder="plan-car.webp ou https://..." oninput="adminAtualizarPlano(${p.id},'imagem',this.value)"></label>
+          <label class="form-full admin-plano-upload"><span>Ou enviar uma foto</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="adminUploadImagemPlano(${p.id},this)"></label>
+        </div>
+        <div class="admin-plano-foot">
+          <img src="${escTexto(p.imagem || 'plan-car.webp')}" alt="Prévia do plano ${escTexto(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src='plan-car.webp'">
+          <button class="btn small secondary" type="button" onclick="adminRemoverPlano(${p.id})">Remover</button>
+        </div>
       </div>
-      <div class="admin-plano-grid">
-        <label><span>Nome</span><input type="text" maxlength="60" value="${escTexto(p.nome)}" oninput="adminAtualizarPlano(${p.id},'nome',this.value)"></label>
-        <label><span>Entrada (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.entrada) || 0}" oninput="adminAtualizarPlano(${p.id},'entrada',this.value)"></label>
-        <label><span>Diária (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.diaria) || 0}" oninput="adminAtualizarPlano(${p.id},'diaria',this.value)"></label>
-        <label><span>Ciclo (dias)</span><input type="number" min="1" step="1" value="${Number(p.ciclo) || 20}" oninput="adminAtualizarPlano(${p.id},'ciclo',this.value)"></label>
-        <label><span>Total recebido (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.retorno) || 0}" oninput="adminAtualizarPlano(${p.id},'retorno',this.value)"></label>
-        <label><span>Limite por conta</span><input type="number" min="1" step="1" value="${Number(p.limite) || 2}" oninput="adminAtualizarPlano(${p.id},'limite',this.value)"></label>
-        <label class="form-full"><span>Foto do plano (URL)</span><input type="text" value="${escTexto(p.imagem || '')}" placeholder="plan-car.webp ou https://..." oninput="adminAtualizarPlano(${p.id},'imagem',this.value)"></label>
-        <label class="form-full admin-plano-upload"><span>Ou enviar uma foto</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="adminUploadImagemPlano(${p.id},this)"></label>
-      </div>
-      <div class="admin-plano-foot">
-        <img src="${escTexto(p.imagem || 'plan-car.webp')}" alt="Prévia do plano ${escTexto(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src='plan-car.webp'">
-        <button class="btn small secondary" type="button" onclick="adminRemoverPlano(${p.id})">Remover</button>
-      </div>
-    </article>
+    </details>
   `).join('');
 }
 
@@ -1661,7 +1694,7 @@ async function adminCarregarPlanos() {
 
 function adminNovoPlano() {
   const maior = planosAdmin.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
-  planosAdmin.push({
+  const novo = {
     id: maior + 1,
     nome: 'Novo plano',
     entrada: 0,
@@ -1671,16 +1704,68 @@ function adminNovoPlano() {
     imagem: 'plan-car.webp',
     limite: 2,
     ativo: true,
-  });
+  };
+  planosAdmin.push(novo);
   adminRenderPlanos();
+  const card = document.querySelector('.admin-plano-card[data-id="' + novo.id + '"]');
+  if (card) {
+    card.open = true;
+    card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
   setMensagem('adminPlanosMsg', 'Plano adicionado. Edite os valores e clique em “Salvar planos”.', 'success');
+}
+
+const ADMIN_PLANO_MULTIPLICADOR = 1.7;
+function adminCalcularPlano(p, origem) {
+  const ciclo = Math.max(1, Number(p.ciclo) || 20);
+  const entrada = Math.max(0, Number(p.entrada) || 0);
+  const arred = (v) => Math.round((Number(v) || 0) * 100) / 100;
+  if (origem === 'entrada' || origem === 'ciclo') {
+    // Mesma matemática dos planos atuais: entrada × 1,7 ÷ ciclo.
+    // Ex.: 15 × 1,7 ÷ 20 = 1,275 → 1,28; total = 1,28 × 20 = 25,60.
+    // Calcula em centavos para evitar erro de ponto flutuante (1.275 → 1.27).
+    if (entrada > 0 || Number(p.id) !== 0) {
+      const centavosDiaria = Math.round((entrada * 170) / ciclo);
+      p.diaria = centavosDiaria / 100;
+      p.retorno = (centavosDiaria * ciclo) / 100;
+    }
+  } else if (origem === 'retorno') {
+    p.diaria = Math.round(((Number(p.retorno) || 0) * 100) / ciclo) / 100;
+  } else if (origem === 'diaria') {
+    p.retorno = Math.round((Number(p.diaria) || 0) * 100 * ciclo) / 100;
+  }
+}
+
+function adminAplicarValoresPlano(id) {
+  const p = planosAdmin.find(x => Number(x.id) === Number(id));
+  const card = document.querySelector('.admin-plano-card[data-id="' + Number(id) + '"]');
+  if (!p || !card) return;
+  ['entrada', 'diaria', 'ciclo', 'retorno'].forEach(campo => {
+    const input = card.querySelector('input[data-campo="' + campo + '"]');
+    if (input && document.activeElement !== input) input.value = Number(p[campo]) || 0;
+  });
 }
 
 function adminAtualizarPlano(id, campo, valor) {
   const p = planosAdmin.find(x => Number(x.id) === Number(id));
   if (!p) return;
-  if (campo === 'ativo') p.ativo = !!valor;
-  else if (['entrada', 'diaria', 'ciclo', 'retorno', 'limite'].includes(campo)) p[campo] = Number(valor) || 0;
+  if (campo === 'ativo') {
+    p.ativo = !!valor;
+    const card = document.querySelector('.admin-plano-card[data-id="' + Number(id) + '"]');
+    const badge = card && card.querySelector('.admin-plano-status');
+    if (badge) {
+      badge.textContent = p.ativo ? 'Ativo' : 'Inativo';
+      badge.classList.toggle('on', p.ativo);
+      badge.classList.toggle('off', !p.ativo);
+    }
+  }
+  else if (['entrada', 'diaria', 'ciclo', 'retorno', 'limite'].includes(campo)) {
+    p[campo] = Number(valor) || 0;
+    if (['entrada', 'diaria', 'ciclo', 'retorno'].includes(campo)) {
+      adminCalcularPlano(p, campo);
+      adminAplicarValoresPlano(id);
+    }
+  }
   else p[campo] = String(valor || '');
   if (campo === 'imagem') {
     const card = document.querySelector('.admin-plano-card[data-id="' + Number(id) + '"]');
@@ -1732,7 +1817,7 @@ async function adminSalvarPlanos() {
   const limpos = planosAdmin.map((p, i) => normalizarPlano({
     ...p,
     id: p.id === '' || p.id == null ? i : Number(p.id),
-  }, i));
+  }, i)).sort((a, b) => (a.entrada - b.entrada) || (a.id - b.id));
   const ids = new Set();
   for (const p of limpos) {
     if (!p.nome.trim()) return setMensagem('adminPlanosMsg', 'Todo plano precisa de um nome.', 'error');
@@ -2069,11 +2154,14 @@ document.addEventListener('DOMContentLoaded', () => {
   carregarCodigosRoleta();
   carregarCodigosBonus();
   carregarLinkGrupo();
-  if (/\/(admin)(\.html)?\/?$/.test(location.pathname) && adminToken()) {
-    adminCarregarGateway();
-    adminCarregarBanners();
-    adminCarregarPlanos();
-    adminCarregarFinanceiro();
+  if (/\/(admin)(\.html)?\/?$/.test(location.pathname)) {
+    observarTabelasAdmin();
+    if (adminToken()) {
+      adminCarregarGateway();
+      adminCarregarBanners();
+      adminCarregarPlanos();
+      adminCarregarFinanceiro();
+    }
   }
 
   if (/\/(cliente)(\.html)?\/?$/.test(location.pathname)) iniciarDashboard();
