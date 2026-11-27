@@ -427,3 +427,32 @@ html[data-tema="escuro"] .team-total-obs strong{color:#ffd27a}
   .primary::after,.btn::after,.goal-btn::after,.invite-copy::after{display:none}
   .dash-shell .plano-card:hover .plan-car{transform:none}
 }
+
+/* Editor de planos no admin */
+.admin-planos-lista{display:grid;gap:14px;margin:16px 0}
+.admin-plano-card{
+  border:1px solid var(--line);border-radius:16px;padding:14px;
+  background:rgba(var(--accent-rgb),.035);
+}
+.admin-plano-top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-plano-top strong{font-family:var(--display);font-size:13px;color:var(--text)}
+.admin-plano-ativo{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:var(--muted);cursor:pointer}
+.admin-plano-ativo input{width:auto;min-height:0;accent-color:var(--accent)}
+.admin-plano-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.admin-plano-grid label{display:flex;flex-direction:column;gap:5px;min-width:0}
+.admin-plano-grid label>span{font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.admin-plano-grid input[type=text],.admin-plano-grid input[type=number]{
+  width:100%;padding:10px 11px;border-radius:10px;border:1px solid var(--line);
+  background:var(--surface);color:var(--text);font-family:var(--font);font-size:12px;
+}
+.admin-plano-grid .form-full{grid-column:1/-1}
+.admin-plano-upload input[type=file]{font-size:10px;padding:8px;color:var(--muted)}
+.admin-plano-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-plano-foot img{
+  width:118px;height:74px;object-fit:cover;border-radius:10px;
+  border:1px solid var(--line);background:var(--surface);
+}
+@media(max-width:760px){
+  .admin-plano-grid{grid-template-columns:1fr}
+  .admin-plano-foot img{width:96px;height:60px}
+}

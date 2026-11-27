@@ -101,16 +101,22 @@ const CONFIG = {
   valor_bonus: 5.00
 };
 
-// Planos do Taxinexo: 20 diárias iguais ao total do plano (capital diluído no período).
-const planos = [
-  { id: 0, nome: 'Veloster Capital Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10 },
-  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 1.28, ciclo: 20, retorno: 25.60 },
-  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 2.13, ciclo: 20, retorno: 42.60 },
-  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 4.25, ciclo: 20, retorno: 85 },
-  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 8.50, ciclo: 20, retorno: 170 },
-  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 42.50, ciclo: 20, retorno: 850 },
-  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 59.50, ciclo: 20, retorno: 1190 },
-  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 85.00, ciclo: 20, retorno: 1700 }
+// Planos padrão. O admin pode adicionar/editar em Configurações > Planos;
+// a versão salva em /config/planos substitui esta lista.
+let planos = [
+  { id: 0, nome: 'Veloster Capital Gratuito', entrada: 0, diaria: 0.50, ciclo: 20, retorno: 10, imagem: 'plan-car.webp', limite: 1 },
+  { id: 1, nome: 'Plano 15', entrada: 15, diaria: 1.28, ciclo: 20, retorno: 25.60, imagem: 'plan-car.webp', limite: 2 },
+  { id: 2, nome: 'Plano 25', entrada: 25, diaria: 2.13, ciclo: 20, retorno: 42.60, imagem: 'plan-car.webp', limite: 2 },
+  { id: 3, nome: 'Plano 50', entrada: 50, diaria: 4.25, ciclo: 20, retorno: 85, imagem: 'plan-car.webp', limite: 2 },
+  { id: 4, nome: 'Plano 100', entrada: 100, diaria: 8.50, ciclo: 20, retorno: 170, imagem: 'plan-car.webp', limite: 2 },
+  { id: 5, nome: 'Plano 500', entrada: 500, diaria: 42.50, ciclo: 20, retorno: 850, imagem: 'plan-car.webp', limite: 2 },
+  { id: 6, nome: 'Plano 700', entrada: 700, diaria: 59.50, ciclo: 20, retorno: 1190, imagem: 'plan-car.webp', limite: 2 },
+  { id: 7, nome: 'Plano 1.000', entrada: 1000, diaria: 85.00, ciclo: 20, retorno: 1700, imagem: 'plan-car.webp', limite: 2 },
+  { id: 8, nome: 'Plano 150', entrada: 150, diaria: 12.75, ciclo: 20, retorno: 255, imagem: 'plan-car.webp', limite: 2 },
+  { id: 9, nome: 'Plano 200', entrada: 200, diaria: 17.00, ciclo: 20, retorno: 340, imagem: 'plan-car.webp', limite: 2 },
+  { id: 10, nome: 'Plano 300', entrada: 300, diaria: 25.50, ciclo: 20, retorno: 510, imagem: 'plan-car.webp', limite: 2 },
+  { id: 11, nome: 'Plano 2.000', entrada: 2000, diaria: 170.00, ciclo: 20, retorno: 3400, imagem: 'plan-car.webp', limite: 2 },
+  { id: 12, nome: 'Plano 5.000', entrada: 5000, diaria: 425.00, ciclo: 20, retorno: 8500, imagem: 'plan-car.webp', limite: 2 }
 ];
 
 // ------------------------------------------------------------
@@ -482,11 +488,12 @@ async function iniciarDashboard() {
   }
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
 
-  carregarPlanos();
+  const financeiroCarregando = carregarConfigFinanceira();
+  const planosCarregando = carregarPlanos();
   atualizarTimers();
   // Carrega a equipe em paralelo para o resumo de indicados aparecer rápido.
   const equipeCarregando = carregarEquipe();
-  await Promise.all([carregarInvestimentos(), carregarExtrato(), equipeCarregando]);
+  await Promise.all([carregarInvestimentos(), carregarExtrato(), equipeCarregando, financeiroCarregando, planosCarregando]);
   iniciarAtualizacaoEquipe();
 }
 
@@ -667,7 +674,63 @@ function iconePlano(tipo) {
 }
 
 // Limites: plano grátis só 1 vez; planos pagos até 2 vezes por usuário.
-function limiteDoPlano(p) { return p.id === 0 ? 1 : 2; }
+function limiteDoPlano(p) {
+  const n = Number(p && p.limite);
+  return n > 0 ? n : (Number(p && p.id) === 0 ? 1 : 2);
+}
+function normalizarPlano(p, i) {
+  const id = Number(p && p.id);
+  return {
+    id: Number.isFinite(id) ? id : i,
+    nome: String((p && p.nome) || 'Plano').slice(0, 60),
+    entrada: Math.max(0, Number(p && p.entrada) || 0),
+    diaria: Math.max(0, Number(p && p.diaria) || 0),
+    ciclo: Math.max(1, Number(p && p.ciclo) || 20),
+    retorno: Math.max(0, Number(p && p.retorno) || 0),
+    imagem: String((p && p.imagem) || '').trim(),
+    limite: Math.max(1, Number(p && p.limite) || (Number(p && p.id) === 0 ? 1 : 2)),
+    ativo: !(p && p.ativo === false),
+  };
+}
+function atualizarSelectPlanos() {
+  const sel = el('investirPlano');
+  if (!sel) return;
+  sel.innerHTML = planos.map(p => `<option value="${p.id}">${escTexto(p.nome)} - ${fmtBRL(p.entrada)}</option>`).join('');
+}
+async function carregarPlanosPublicos() {
+  try {
+    const r = await fetch(TAX_API + '/planos', { cache: 'no-store' });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok && Array.isArray(j.planos) && j.planos.length) {
+      planos = j.planos.map(normalizarPlano);
+      atualizarSelectPlanos();
+    }
+  } catch (e) {
+    console.warn('[Planos] usando padrão:', e.message);
+  }
+}
+async function carregarConfigFinanceira() {
+  try {
+    const s = await db.child('config/financeiro').once('value');
+    const c = s.val();
+    if (c && typeof c === 'object') {
+      if (Number(c.saqueMinimo) > 0) CONFIG.saqueMinimo = Number(c.saqueMinimo);
+      if (Number(c.taxaSaquePorcento) >= 0) CONFIG.taxaSaquePorcento = Number(c.taxaSaquePorcento);
+      if (Number(c.saquesPorDia) > 0) CONFIG.saquesPorDia = Math.floor(Number(c.saquesPorDia));
+    }
+  } catch (e) {
+    console.warn('[Financeiro] usando padrão:', e.message);
+  }
+  aplicarConfigFinanceira();
+}
+function aplicarConfigFinanceira() {
+  const min = el('saqueMin');
+  if (min) {
+    min.innerHTML = `Saque mínimo: <strong>${fmtBRL(CONFIG.saqueMinimo)}</strong> · 24 horas por dia · máx. ${CONFIG.saquesPorDia} saques/dia`;
+  }
+  const taxa = document.querySelector('#saqueResumo dt');
+  if (taxa) taxa.textContent = `Taxa de saque (${CONFIG.taxaSaquePorcento}%)`;
+}
 async function contarInvestimentosDoPlano(uid, planoId) {
   if (!db) return 0;
   const keys = await chavesDaLista('investimentos_usuario/' + uid);
@@ -677,6 +740,7 @@ async function contarInvestimentosDoPlano(uid, planoId) {
 
 async function carregarPlanos() {
   const container = el('listaPlanos'); if (!container) return;
+  await carregarPlanosPublicos();
   const u = usuarioLocal();
   const contagens = {};
   if (u && db) {
@@ -686,19 +750,20 @@ async function carregarPlanos() {
     const usados = contagens[p.id] || 0;
     const limite = limiteDoPlano(p);
     const esgotado = usados >= limite;
-    const selo = p.id === 0 ? 'limitado a 1x' : 'até 2x por conta';
+    const selo = limite === 1 ? 'limitado a 1x' : `até ${limite}x por conta`;
+    const img = p.imagem || 'plan-car.webp';
     return `
-    <article class="plano-card" aria-label="${p.nome}">
-      <h4>${p.nome.toUpperCase()}</h4>
+    <article class="plano-card" aria-label="${escTexto(p.nome)}">
+      <h4>${escTexto(p.nome.toUpperCase())}</h4>
       <span class="plano-selo">${selo}</span>
-      <img class="plan-car" src="plan-car.webp" alt="Carro Veloster Capital" width="1408" height="752" loading="lazy">
+      <img class="plan-car" src="${escTexto(img)}" alt="${escTexto(p.nome)}" width="1408" height="752" loading="lazy" onerror="this.onerror=null;this.src='plan-car.webp'">
       <dl class="plan-facts">
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('entrada')}</span><dt>Entrada</dt><dd>${fmtBRL(p.entrada)}</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('diaria')}</span><dt>Diária</dt><dd>${fmtBRL(p.diaria)}</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('ciclo')}</span><dt>Ciclo</dt><dd>${p.ciclo} Dias</dd></div>
         <div><span class="plan-icon" aria-hidden="true">${iconePlano('retorno')}</span><dt>Total recebido</dt><dd>${fmtBRL(p.retorno)}</dd></div>
       </dl>
-      <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${p.nome}">
+      <button ${esgotado ? 'disabled class="plano-esgotado"' : `onclick="escolherPlano(${p.id})"`} aria-label="Escolher ${escTexto(p.nome)}">
         ${esgotado ? 'Limite atingido' : 'Investir neste plano'} <span class="ico ico-arrow" aria-hidden="true"></span>
       </button>
     </article>`;
@@ -1075,6 +1140,8 @@ async function entrarAdmin() {
     carregarAdmin();
     adminCarregarGateway();
     adminCarregarBanners();
+    adminCarregarPlanos();
+    adminCarregarFinanceiro();
   } catch (e) {
     setMensagem('adminMsg', 'Erro ao entrar: ' + e.message, 'error');
   }
@@ -1540,6 +1607,200 @@ function adminSelecionarCor(cor) {
   atualizarPreviewCor(cor);
 }
 
+// ------------------------------------------------------------
+// ADMIN — PLANOS E REGRAS FINANCEIRAS
+// ------------------------------------------------------------
+let planosAdmin = [];
+
+function adminPlanosBase(lista) {
+  const base = Array.isArray(lista) && lista.length ? lista : planos;
+  return base.map(normalizarPlano);
+}
+
+function adminRenderPlanos() {
+  const box = el('adminPlanosLista');
+  if (!box) return;
+  if (!planosAdmin.length) {
+    box.innerHTML = '<p class="empty">Nenhum plano. Clique em “Adicionar plano”.</p>';
+    return;
+  }
+  box.innerHTML = planosAdmin.map(p => `
+    <article class="admin-plano-card" data-id="${p.id}">
+      <div class="admin-plano-top">
+        <strong>#${p.id} · ${escTexto(p.nome)}</strong>
+        <label class="admin-plano-ativo"><input type="checkbox" ${p.ativo !== false ? 'checked' : ''} onchange="adminAtualizarPlano(${p.id},'ativo',this.checked)"> Ativo</label>
+      </div>
+      <div class="admin-plano-grid">
+        <label><span>Nome</span><input type="text" maxlength="60" value="${escTexto(p.nome)}" oninput="adminAtualizarPlano(${p.id},'nome',this.value)"></label>
+        <label><span>Entrada (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.entrada) || 0}" oninput="adminAtualizarPlano(${p.id},'entrada',this.value)"></label>
+        <label><span>Diária (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.diaria) || 0}" oninput="adminAtualizarPlano(${p.id},'diaria',this.value)"></label>
+        <label><span>Ciclo (dias)</span><input type="number" min="1" step="1" value="${Number(p.ciclo) || 20}" oninput="adminAtualizarPlano(${p.id},'ciclo',this.value)"></label>
+        <label><span>Total recebido (R$)</span><input type="number" min="0" step="0.01" value="${Number(p.retorno) || 0}" oninput="adminAtualizarPlano(${p.id},'retorno',this.value)"></label>
+        <label><span>Limite por conta</span><input type="number" min="1" step="1" value="${Number(p.limite) || 2}" oninput="adminAtualizarPlano(${p.id},'limite',this.value)"></label>
+        <label class="form-full"><span>Foto do plano (URL)</span><input type="text" value="${escTexto(p.imagem || '')}" placeholder="plan-car.webp ou https://..." oninput="adminAtualizarPlano(${p.id},'imagem',this.value)"></label>
+        <label class="form-full admin-plano-upload"><span>Ou enviar uma foto</span><input type="file" accept="image/png,image/jpeg,image/webp,image/gif" onchange="adminUploadImagemPlano(${p.id},this)"></label>
+      </div>
+      <div class="admin-plano-foot">
+        <img src="${escTexto(p.imagem || 'plan-car.webp')}" alt="Prévia do plano ${escTexto(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src='plan-car.webp'">
+        <button class="btn small secondary" type="button" onclick="adminRemoverPlano(${p.id})">Remover</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+async function adminCarregarPlanos() {
+  try {
+    const s = await db.child('config/planos').once('value');
+    planosAdmin = adminPlanosBase(s.val());
+  } catch (e) {
+    planosAdmin = adminPlanosBase(null);
+    console.warn('[Planos admin]', e);
+  }
+  adminRenderPlanos();
+}
+
+function adminNovoPlano() {
+  const maior = planosAdmin.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
+  planosAdmin.push({
+    id: maior + 1,
+    nome: 'Novo plano',
+    entrada: 0,
+    diaria: 0,
+    ciclo: 20,
+    retorno: 0,
+    imagem: 'plan-car.webp',
+    limite: 2,
+    ativo: true,
+  });
+  adminRenderPlanos();
+  setMensagem('adminPlanosMsg', 'Plano adicionado. Edite os valores e clique em “Salvar planos”.', 'success');
+}
+
+function adminAtualizarPlano(id, campo, valor) {
+  const p = planosAdmin.find(x => Number(x.id) === Number(id));
+  if (!p) return;
+  if (campo === 'ativo') p.ativo = !!valor;
+  else if (['entrada', 'diaria', 'ciclo', 'retorno', 'limite'].includes(campo)) p[campo] = Number(valor) || 0;
+  else p[campo] = String(valor || '');
+  if (campo === 'imagem') {
+    const card = document.querySelector('.admin-plano-card[data-id="' + Number(id) + '"]');
+    const img = card && card.querySelector('.admin-plano-foot img');
+    if (img) img.src = p.imagem || 'plan-car.webp';
+  }
+}
+
+function adminRemoverPlano(id) {
+  if (Number(id) === 0) {
+    setMensagem('adminPlanosMsg', 'O plano gratuito (ID 0) não pode ser removido; edite-o ou desative-o.', 'error');
+    return;
+  }
+  if (!confirm('Remover o plano #' + id + '?')) return;
+  planosAdmin = planosAdmin.filter(p => Number(p.id) !== Number(id));
+  adminRenderPlanos();
+}
+
+async function adminUploadImagemPlano(id, input) {
+  const file = input && input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) {
+    setMensagem('adminPlanosMsg', 'Selecione uma imagem.', 'error');
+    return;
+  }
+  setMensagem('adminPlanosMsg', 'Enviando foto...', 'loading');
+  try {
+    const form = new FormData();
+    form.append('image', file);
+    const resp = await fetch(TAX_API + '/admin/upload-plan-image', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + adminToken() },
+      body: form,
+    });
+    const r = await resp.json().catch(() => ({}));
+    if (!resp.ok || !r.ok || !r.image_url) {
+      return setMensagem('adminPlanosMsg', r.message || 'Falha ao enviar a foto.', 'error');
+    }
+    const p = planosAdmin.find(x => Number(x.id) === Number(id));
+    if (p) p.imagem = r.image_url;
+    adminRenderPlanos();
+    setMensagem('adminPlanosMsg', 'Foto enviada. Clique em “Salvar planos” para publicar.', 'success');
+  } catch (e) {
+    setMensagem('adminPlanosMsg', 'Erro ao enviar a foto: ' + e.message, 'error');
+  }
+}
+
+async function adminSalvarPlanos() {
+  const limpos = planosAdmin.map((p, i) => normalizarPlano({
+    ...p,
+    id: p.id === '' || p.id == null ? i : Number(p.id),
+  }, i));
+  const ids = new Set();
+  for (const p of limpos) {
+    if (!p.nome.trim()) return setMensagem('adminPlanosMsg', 'Todo plano precisa de um nome.', 'error');
+    if (ids.has(p.id)) return setMensagem('adminPlanosMsg', 'Há IDs de planos duplicados.', 'error');
+    if (p.entrada < 0 || p.diaria < 0 || p.retorno < 0) return setMensagem('adminPlanosMsg', 'Valores não podem ser negativos.', 'error');
+    if (p.ciclo < 1) return setMensagem('adminPlanosMsg', 'O ciclo deve ter pelo menos 1 dia.', 'error');
+    if (p.limite < 1) return setMensagem('adminPlanosMsg', 'O limite deve ser pelo menos 1.', 'error');
+    ids.add(p.id);
+  }
+  if (!limpos.some(p => p.ativo !== false)) return setMensagem('adminPlanosMsg', 'Mantenha pelo menos um plano ativo.', 'error');
+  try {
+    await db.child('config/planos').set(limpos);
+    planosAdmin = limpos;
+    planos = limpos.map(normalizarPlano);
+    atualizarSelectPlanos();
+    setMensagem('adminPlanosMsg', 'Planos salvos e publicados no site.', 'success');
+    toast('Planos atualizados.');
+  } catch (e) {
+    setMensagem('adminPlanosMsg', 'Erro ao salvar planos: ' + e.message, 'error');
+  }
+}
+
+async function adminCarregarFinanceiro() {
+  let cfg = {
+    saqueMinimo: CONFIG.saqueMinimo,
+    taxaSaquePorcento: CONFIG.taxaSaquePorcento,
+    saquesPorDia: CONFIG.saquesPorDia,
+  };
+  try {
+    const s = await db.child('config/financeiro').once('value');
+    const v = s.val();
+    if (v && typeof v === 'object') {
+      if (Number(v.saqueMinimo) > 0) cfg.saqueMinimo = Number(v.saqueMinimo);
+      if (Number(v.taxaSaquePorcento) >= 0) cfg.taxaSaquePorcento = Number(v.taxaSaquePorcento);
+      if (Number(v.saquesPorDia) > 0) cfg.saquesPorDia = Math.floor(Number(v.saquesPorDia));
+    }
+  } catch (e) {
+    console.warn('[Financeiro admin]', e);
+  }
+  if (el('adminSaqueMinimo')) el('adminSaqueMinimo').value = cfg.saqueMinimo;
+  if (el('adminTaxaSaque')) el('adminTaxaSaque').value = cfg.taxaSaquePorcento;
+  if (el('adminSaquesPorDia')) el('adminSaquesPorDia').value = cfg.saquesPorDia;
+}
+
+async function adminSalvarFinanceiro() {
+  const saqueMinimo = Math.max(1, Number(el('adminSaqueMinimo')?.value) || 0);
+  const taxa = Math.min(100, Math.max(0, Number(el('adminTaxaSaque')?.value) || 0));
+  const porDia = Math.max(1, Math.floor(Number(el('adminSaquesPorDia')?.value) || 0));
+  if (!(saqueMinimo > 0)) return setMensagem('adminFinanceiroMsg', 'Informe um saque mínimo válido.', 'error');
+  const cfg = {
+    saqueMinimo,
+    taxaSaquePorcento: taxa,
+    saquesPorDia: porDia,
+    atualizado_em: new Date().toISOString(),
+  };
+  try {
+    await db.child('config/financeiro').set(cfg);
+    CONFIG.saqueMinimo = saqueMinimo;
+    CONFIG.taxaSaquePorcento = taxa;
+    CONFIG.saquesPorDia = porDia;
+    aplicarConfigFinanceira();
+    setMensagem('adminFinanceiroMsg', 'Regras financeiras salvas.', 'success');
+    toast('Saque mínimo e taxas atualizados.');
+  } catch (e) {
+    setMensagem('adminFinanceiroMsg', 'Erro ao salvar: ' + e.message, 'error');
+  }
+}
+
 async function adminCarregarAparencia() {
   renderCoresPreset();
   let cfg = { nome: 'Veloster Capital', cor: '#d97706' };
@@ -1811,6 +2072,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if (/\/(admin)(\.html)?\/?$/.test(location.pathname) && adminToken()) {
     adminCarregarGateway();
     adminCarregarBanners();
+    adminCarregarPlanos();
+    adminCarregarFinanceiro();
   }
 
   if (/\/(cliente)(\.html)?\/?$/.test(location.pathname)) iniciarDashboard();
