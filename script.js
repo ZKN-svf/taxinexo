@@ -91,7 +91,7 @@ const CONFIG = {
   depositoMinimo: 20,
   depositoMaximo: 500,
   saqueMinimo: 6,
-  saquesPorDia: 0,
+  saquesPorDia: 2,
   taxaSaquePorcento: 10,
   horarioSaqueInicio: 0,
   horarioSaqueFim: 24,
@@ -199,6 +199,7 @@ function abrirDialogo(id, campo) {
     const u = usuarioLocal() || {};
     if (el('saquePix')) el('saquePix').value = u.pix || '';
     if (el('saqueDocumento')) el('saqueDocumento').value = u.cpf || '';
+    if (el('saqueNome')) el('saqueNome').value = u.nome || '';
     atualizarTaxa();
   }
   d.showModal();
@@ -493,6 +494,7 @@ async function iniciarDashboard() {
   }
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
   if (el('saqueDocumento')) el('saqueDocumento').value = atual.cpf || '';
+  if (el('saqueNome')) el('saqueNome').value = atual.nome || '';
 
   const financeiroCarregando = carregarConfigFinanceira();
   const planosCarregando = carregarPlanos();
@@ -1141,7 +1143,7 @@ async function contarSaquesHoje(uid) {
   if (!db) return 0;
   const keys = await chavesDaLista('saques_usuario/' + uid);
   const itens = await lerCada('saques', keys);
-  const naoContam = ['falha', 'cancelado', 'recusado', 'estornado'];
+  const naoContam = ['falha', 'cancelado', 'recusado', 'rejeitado', 'negado', 'estornado', 'devolvido', 'revertido'];
   return itens.filter(x => {
     const s = x.valor || {};
     if (naoContam.includes(String(s.status || '').toLowerCase())) return false;
@@ -1168,6 +1170,8 @@ async function confirmarSaque(ev) {
   if (!documentoValidoCliente(documento)) {
     return avisoSaque('Informe o CPF/CNPJ do destinatário para o saque.');
   }
+  const nomeDestinatario = String(el('saqueNome')?.value || u.nome || '').trim();
+  if (nomeDestinatario.length < 3) return avisoSaque('Informe o nome do destinatário da chave PIX.');
   if (CONFIG.saquesPorDia > 0) {
     const feitos = await contarSaquesHoje(u.id);
     if (feitos >= CONFIG.saquesPorDia) return avisoSaque(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
@@ -1187,7 +1191,7 @@ async function confirmarSaque(ev) {
     const resp = await fetch(TAX_API + '/saque', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
-      body: JSON.stringify({ valor, pix, taxId: documento.replace(/\D/g, '') }),
+      body: JSON.stringify({ valor, pix, taxId: documento.replace(/\D/g, ''), nome: nomeDestinatario }),
     });
     const r = await resp.json().catch(() => ({}));
     if (!resp.ok || !r.ok) {

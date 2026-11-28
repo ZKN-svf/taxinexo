@@ -275,6 +275,9 @@
       <label for="saqueDocumento">CPF/CNPJ do destinatário</label>
       <div class="input-wrap"><input id="saqueDocumento" inputmode="numeric" placeholder="CPF ou CNPJ" maxlength="18" autocomplete="off"></div>
       <small class="pix-tipo" id="saqueDocumentoHint">Necessário para o PIX. Preenchido automaticamente se a chave for CPF/CNPJ.</small>
+      <label for="saqueNome">Nome do destinatário</label>
+      <div class="input-wrap"><input id="saqueNome" placeholder="Nome de quem recebe o PIX" maxlength="120" autocomplete="off"></div>
+      <small class="pix-tipo">Deve ser o mesmo nome da conta da chave PIX.</small>
       <label for="saqueValor">Valor do saque</label>
       <div class="input-wrap"><span aria-hidden="true">R$</span><input id="saqueValor" inputmode="decimal" placeholder="0,00" autocomplete="off" aria-describedby="saqueMin saqueResumo saqueMsg"></div>
       <p class="min-notice" id="saqueMin">Saque mínimo: <strong>R$ 6,00</strong> · 24 horas por dia · máx. 2 saques/dia</p>
