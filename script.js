@@ -814,22 +814,29 @@ async function escolherPlano(id) {
   const dlg = el('investirDialog'); if (dlg) dlg.showModal();
 }
 
-// Timer: próximo rendimento no horário exato da compra (24h)
+// Timer: próximo rendimento no horário exato da compra (24h por diária).
+// Se a data salva já passou (rendimento ainda não processado), avança em
+// blocos de 24h para manter a contagem regressiva em vez de travar.
 function proxPagamentoCliente(inv) {
-  let t = Date.parse(inv.proximo_pagamento || '');
-  if (!isFinite(t)) {
-    t = Date.parse(inv.data_inicio || '');
-    if (!isFinite(t)) t = Date.now();
-    t += 24 * 60 * 60 * 1000;
-  }
+  const DIA = 86400000;
+  const inicio = Date.parse(inv.data_inicio || '');
+  const pagos = Math.max(0, Number(inv.dias_pagos) || 0);
+  let t = isFinite(inicio) ? inicio + (pagos + 1) * DIA : Date.parse(inv.proximo_pagamento || '');
+  if (!isFinite(t)) t = Date.now() + DIA;
+  if (t <= Date.now()) t += (Math.floor((Date.now() - t) / DIA) + 1) * DIA;
   return new Date(t).toISOString();
 }
 function atualizarTimers() {
   document.querySelectorAll('[data-proximo]').forEach(el => {
-    const alvo = Date.parse(el.dataset.proximo || '');
+    let alvo = Date.parse(el.dataset.proximo || '');
     if (!isFinite(alvo)) { el.querySelector('strong').textContent = ' breve'; return; }
     let diff = alvo - Date.now();
-    if (diff <= 0) { el.querySelector('strong').textContent = ' processando...'; return; }
+    if (diff <= 0) {
+      const DIA = 86400000;
+      alvo += (Math.floor((Date.now() - alvo) / DIA) + 1) * DIA;
+      el.dataset.proximo = new Date(alvo).toISOString();
+      diff = alvo - Date.now();
+    }
     const h = Math.floor(diff / 3600000);
     const m = Math.floor((diff % 3600000) / 60000);
     const s = Math.floor((diff % 60000) / 1000);
@@ -2299,6 +2306,10 @@ async function processarRendimentos(ev) {
       const diaria = Number(inv.rendimento_diario) || 0;
       await db.child('investimentos/' + key + '/dias_pagos').set(dias);
       await db.child('investimentos/' + key + '/rendimento_pago').set((Number(inv.rendimento_pago) || 0) + diaria);
+      // Mantém o timer do cliente contando a próxima diária.
+      if (dias < duracao) {
+        await db.child('investimentos/' + key + '/proximo_pagamento').set(new Date(Date.now() + 86400000).toISOString());
+      }
 
       const us = await db.child('usuarios/' + inv.usuario_id).once('value');
       if (us.exists()) {
