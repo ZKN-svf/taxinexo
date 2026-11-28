@@ -2295,8 +2295,17 @@ async function processarRendimentos(ev) {
   try {
     const snap = await db.child('investimentos').once('value');
     const dados = snap.val() || {};
-    const ativos = Object.entries(dados).filter(([k, i]) => i.status === 'ativo');
-    if (!ativos.length) return toast('Nenhum investimento ativo.');
+    const agoraMs = Date.now();
+    const ativos = Object.entries(dados).filter(([, i]) => {
+      if (!i || i.status !== 'ativo') return false;
+      let t = Date.parse(i.proximo_pagamento || '');
+      if (!isFinite(t)) {
+        t = Date.parse(i.data_inicio || '');
+        if (isFinite(t)) t += 86400000;
+      }
+      return isFinite(t) ? t <= agoraMs : false;
+    });
+    if (!ativos.length) return toast('Nenhum investimento com rendimento vencido.');
 
     if (btn) btn.innerHTML = 'Processando...';
     let creditados = 0, total = 0, finalizados = 0;
@@ -2306,9 +2315,13 @@ async function processarRendimentos(ev) {
       const diaria = Number(inv.rendimento_diario) || 0;
       await db.child('investimentos/' + key + '/dias_pagos').set(dias);
       await db.child('investimentos/' + key + '/rendimento_pago').set((Number(inv.rendimento_pago) || 0) + diaria);
-      // Mantém o timer do cliente contando a próxima diária.
+      // Mantém o timer do cliente contando a próxima diária no mesmo horário da compra.
       if (dias < duracao) {
-        await db.child('investimentos/' + key + '/proximo_pagamento').set(new Date(Date.now() + 86400000).toISOString());
+        const DIA = 86400000;
+        const inicio = Date.parse(inv.data_inicio || '');
+        let prox = isFinite(inicio) ? inicio + (dias + 1) * DIA : Date.now() + DIA;
+        if (prox <= Date.now()) prox += (Math.floor((Date.now() - prox) / DIA) + 1) * DIA;
+        await db.child('investimentos/' + key + '/proximo_pagamento').set(new Date(prox).toISOString());
       }
 
       const us = await db.child('usuarios/' + inv.usuario_id).once('value');
