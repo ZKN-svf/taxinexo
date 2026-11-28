@@ -91,7 +91,7 @@ const CONFIG = {
   depositoMinimo: 20,
   depositoMaximo: 500,
   saqueMinimo: 6,
-  saquesPorDia: 2,
+  saquesPorDia: 0,
   taxaSaquePorcento: 10,
   horarioSaqueInicio: 0,
   horarioSaqueFim: 24,
@@ -195,7 +195,12 @@ function abrirDialogo(id, campo) {
   const d = el(id); if (!d) return;
   d.querySelector('form').reset();
   d.querySelectorAll('.reward-result').forEach(x => { x.textContent = ''; delete x.dataset.state; });
-  if (id === 'saqueDialog') atualizarTaxa();
+  if (id === 'saqueDialog') {
+    const u = usuarioLocal() || {};
+    if (el('saquePix')) el('saquePix').value = u.pix || '';
+    if (el('saqueDocumento')) el('saqueDocumento').value = u.cpf || '';
+    atualizarTaxa();
+  }
   d.showModal();
   if (campo && el(campo)) el(campo).focus();
 }
@@ -487,6 +492,7 @@ async function iniciarDashboard() {
     linkInput.value = location.origin + location.pathname.replace(/[^/]*$/, 'cadastro.html') + '?ref=' + encodeURIComponent(atual.codigo_indicacao);
   }
   if (el('saquePix')) el('saquePix').value = atual.pix || '';
+  if (el('saqueDocumento')) el('saqueDocumento').value = atual.cpf || '';
 
   const financeiroCarregando = carregarConfigFinanceira();
   const planosCarregando = carregarPlanos();
@@ -719,7 +725,7 @@ async function carregarConfigFinanceira() {
       if (Number(c.depositoMaximo) > 0) CONFIG.depositoMaximo = Number(c.depositoMaximo);
       if (Number(c.saqueMinimo) > 0) CONFIG.saqueMinimo = Number(c.saqueMinimo);
       if (Number(c.taxaSaquePorcento) >= 0) CONFIG.taxaSaquePorcento = Number(c.taxaSaquePorcento);
-      if (Number(c.saquesPorDia) > 0) CONFIG.saquesPorDia = Math.floor(Number(c.saquesPorDia));
+      if (Number(c.saquesPorDia) >= 0) CONFIG.saquesPorDia = Math.floor(Number(c.saquesPorDia));
     }
   } catch (e) {
     console.warn('[Financeiro] usando padrão:', e.message);
@@ -729,7 +735,10 @@ async function carregarConfigFinanceira() {
 function aplicarConfigFinanceira() {
   const min = el('saqueMin');
   if (min) {
-    min.innerHTML = `Saque mínimo: <strong>${fmtBRL(CONFIG.saqueMinimo)}</strong> · 24 horas por dia · máx. ${CONFIG.saquesPorDia} saques/dia`;
+    const limite = CONFIG.saquesPorDia > 0
+      ? `máx. ${CONFIG.saquesPorDia} saques/dia`
+      : 'sem limite de saques/dia';
+    min.innerHTML = `Saque mínimo: <strong>${fmtBRL(CONFIG.saqueMinimo)}</strong> · 24 horas por dia · ${limite}`;
   }
   const taxa = document.querySelector('#saqueResumo dt');
   if (taxa) taxa.textContent = `Taxa de saque (${CONFIG.taxaSaquePorcento}%)`;
@@ -965,6 +974,10 @@ function configurarCarteira() {
       const r = SigiloPay.validarChavePix(pixCampo.value);
       hint.textContent = r.valida ? 'Tipo detectado: ' + r.descricao : 'Chave inválida';
       hint.className = 'pix-tipo ' + (r.valida ? 'ok' : 'erro');
+      if (r.valida && (r.tipo === 'CPF' || r.tipo === 'CNPJ')) {
+        const doc = el('saqueDocumento');
+        if (doc) doc.value = pixCampo.value.replace(/\D/g, '');
+      }
     });
     sf.addEventListener('submit', (e) => { e.preventDefault(); confirmarSaque(e); });
   }
@@ -1128,7 +1141,16 @@ async function contarSaquesHoje(uid) {
   if (!db) return 0;
   const keys = await chavesDaLista('saques_usuario/' + uid);
   const itens = await lerCada('saques', keys);
-  return itens.filter(x => (x.valor.criado_em || '').split('T')[0] === hoje()).length;
+  const naoContam = ['falha', 'cancelado', 'recusado', 'estornado'];
+  return itens.filter(x => {
+    const s = x.valor || {};
+    if (naoContam.includes(String(s.status || '').toLowerCase())) return false;
+    return String(s.criado_em || '').split('T')[0] === hoje();
+  }).length;
+}
+function documentoValidoCliente(v) {
+  const doc = String(v || '').replace(/\D/g, '');
+  return !!(SigiloPay && (SigiloPay.cpfValido(doc) || SigiloPay.cnpjValido(doc)));
 }
 
 async function confirmarSaque(ev) {
@@ -1142,8 +1164,14 @@ async function confirmarSaque(ev) {
   if (!(valor >= CONFIG.saqueMinimo)) return avisoSaque(`Saque mínimo: ${fmtBRL(CONFIG.saqueMinimo)}.`);
   const chavePix = SigiloPay.validarChavePix(pix);
   if (!chavePix.valida) return avisoSaque('Chave Pix inválida! Use CPF, CNPJ, e-mail, celular ou chave aleatória.');
-  const feitos = await contarSaquesHoje(u.id);
-  if (feitos >= CONFIG.saquesPorDia) return avisoSaque(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
+  const documento = String(el('saqueDocumento')?.value || u.cpf || '').trim();
+  if (!documentoValidoCliente(documento)) {
+    return avisoSaque('Informe o CPF/CNPJ do destinatário para o saque.');
+  }
+  if (CONFIG.saquesPorDia > 0) {
+    const feitos = await contarSaquesHoje(u.id);
+    if (feitos >= CONFIG.saquesPorDia) return avisoSaque(`Você já fez ${CONFIG.saquesPorDia} saques hoje.`);
+  }
   if ((Number(u.saldo) || 0) < valor) return avisoSaque(`Saldo insuficiente! Você tem ${fmtBRL(u.saldo)}.`);
   // Só permite saque para quem já fez um depósito real.
   if ((Number(u.total_depositado) || 0) <= 0) return avisoSaque('Você precisa fazer um depósito antes de solicitar um saque.');
@@ -1159,7 +1187,7 @@ async function confirmarSaque(ev) {
     const resp = await fetch(TAX_API + '/saque', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sessionToken() },
-      body: JSON.stringify({ valor, pix }),
+      body: JSON.stringify({ valor, pix, taxId: documento.replace(/\D/g, '') }),
     });
     const r = await resp.json().catch(() => ({}));
     if (!resp.ok || !r.ok) {
@@ -2170,7 +2198,7 @@ async function adminCarregarFinanceiro() {
       if (Number(v.depositoMaximo) > 0) cfg.depositoMaximo = Number(v.depositoMaximo);
       if (Number(v.saqueMinimo) > 0) cfg.saqueMinimo = Number(v.saqueMinimo);
       if (Number(v.taxaSaquePorcento) >= 0) cfg.taxaSaquePorcento = Number(v.taxaSaquePorcento);
-      if (Number(v.saquesPorDia) > 0) cfg.saquesPorDia = Math.floor(Number(v.saquesPorDia));
+      if (Number(v.saquesPorDia) >= 0) cfg.saquesPorDia = Math.floor(Number(v.saquesPorDia));
     }
   } catch (e) {
     console.warn('[Financeiro admin]', e);
@@ -2187,7 +2215,7 @@ async function adminSalvarFinanceiro() {
   const depositoMaximo = Math.max(1, Number(el('adminDepositoMaximo')?.value) || 0);
   const saqueMinimo = Math.max(1, Number(el('adminSaqueMinimo')?.value) || 0);
   const taxa = Math.min(100, Math.max(0, Number(el('adminTaxaSaque')?.value) || 0));
-  const porDia = Math.max(1, Math.floor(Number(el('adminSaquesPorDia')?.value) || 0));
+  const porDia = Math.max(0, Math.floor(Number(el('adminSaquesPorDia')?.value) || 0));
   if (!(depositoMinimo > 0)) return setMensagem('adminFinanceiroMsg', 'Informe um depósito mínimo válido.', 'error');
   if (depositoMaximo < depositoMinimo) return setMensagem('adminFinanceiroMsg', 'O depósito máximo precisa ser maior ou igual ao mínimo.', 'error');
   if (!(saqueMinimo > 0)) return setMensagem('adminFinanceiroMsg', 'Informe um saque mínimo válido.', 'error');
